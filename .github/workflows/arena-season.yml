@@ -1,0 +1,67 @@
+name: Play arena matches
+
+# Accumulates the season. The free-model tier allows only a small number of
+# requests per day, and a match costs five (two competitors + three judges),
+# so a single run can only ever add a handful of matches before the account
+# quota returns 429 and the runner stops cleanly.
+#
+# That is by design: the journal is append-only and resumable, so this job
+# just runs daily and the ladders thicken over time. Nothing is ever
+# estimated to fill the gap — an unplayed category shows as unplayed.
+on:
+  schedule:
+    - cron: '25 3 * * *' # daily, a few hours after the free-tier reset
+  workflow_dispatch:
+    inputs:
+      maxMatches:
+        description: 'Stop after this many newly decided matches'
+        required: false
+        default: ''
+      category:
+        description: 'Limit to one category (security, debugging, …)'
+        required: false
+        default: ''
+
+# never let two runs append to the same journal at once
+concurrency:
+  group: arena-season
+  cancel-in-progress: false
+
+jobs:
+  season:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Play matches
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          args=""
+          if [ -n "${{ inputs.maxMatches }}" ]; then args="$args --max-matches ${{ inputs.maxMatches }}"; fi
+          if [ -n "${{ inputs.category }}" ]; then args="$args --category ${{ inputs.category }}"; fi
+          node scripts/arena/run.mjs $args
+
+      - name: Rebuild the snapshot from the journal
+        run: node scripts/arena/build-snapshot.mjs
+
+      - name: Verify the site still builds
+        run: pnpm build
+
+      - name: Commit the new matches
+        run: |
+          git config user.name "apexbench-bot"
+          git config user.email "bot@apexbench.dev"
+          git add results src/data/arena.json src/data/matches.json
+          git diff --cached --quiet || git commit -m "arena: journal new matches and refold ladders"
+          git push

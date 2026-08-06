@@ -1,0 +1,1135 @@
+{
+  "updatedAt": "2026-07-27T20:12:26.703Z",
+  "latestRun": "2026-07-27T20:06:09.774Z",
+  "roster": [
+    {
+      "name": "Nemotron 3 Ultra 550B",
+      "provider": "NVIDIA",
+      "slug": "nvidia/nemotron-3-ultra-550b-a55b:free"
+    },
+    {
+      "name": "Nemotron 3 Super 120B",
+      "provider": "NVIDIA",
+      "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+    },
+    {
+      "name": "Gemma 4 31B",
+      "provider": "Google",
+      "slug": "google/gemma-4-31b-it:free"
+    },
+    {
+      "name": "Gemma 4 26B",
+      "provider": "Google",
+      "slug": "google/gemma-4-26b-a4b-it:free"
+    },
+    {
+      "name": "GPT-OSS 20B",
+      "provider": "OpenAI",
+      "slug": "openai/gpt-oss-20b:free"
+    },
+    {
+      "name": "North Mini Code",
+      "provider": "Cohere",
+      "slug": "cohere/north-mini-code:free"
+    },
+    {
+      "name": "Ling 3.0 Flash",
+      "provider": "InclusionAI",
+      "slug": "inclusionai/ling-3.0-flash:free"
+    },
+    {
+      "name": "Laguna M.1",
+      "provider": "Poolside",
+      "slug": "poolside/laguna-m.1:free"
+    }
+  ],
+  "judgePool": [
+    {
+      "name": "Nemotron 3 Super 120B",
+      "provider": "NVIDIA",
+      "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+    },
+    {
+      "name": "Gemma 4 31B",
+      "provider": "Google",
+      "slug": "google/gemma-4-31b-it:free"
+    },
+    {
+      "name": "GPT-OSS 20B",
+      "provider": "OpenAI",
+      "slug": "openai/gpt-oss-20b:free"
+    },
+    {
+      "name": "North Mini Code",
+      "provider": "Cohere",
+      "slug": "cohere/north-mini-code:free"
+    },
+    {
+      "name": "Ling 3.0 Flash",
+      "provider": "InclusionAI",
+      "slug": "inclusionai/ling-3.0-flash:free"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "security/jwt-alg-confusion",
+      "version": 1,
+      "cluster": "authz-boundary",
+      "difficulty": "hard",
+      "title": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+      "summary": "Three auth checks look similar; exactly one lets an attacker forge an admin session. Find it and prove the forgery.",
+      "prompt": "A Node service verifies JSON Web Tokens in three places (see [verify-mw], [refresh], [ws-auth]). Security review flagged \"possible auth bypass\" but gave no specifics. Using the code and the deploy config [env], identify the ONE endpoint an unauthenticated attacker can exploit to impersonate an admin, and prove the attack end to end.\n\n1. Name the single exploitable verifier and the exact class of vulnerability.\n2. Show the concrete forgery steps an attacker takes, referencing the code that makes each step work.\n3. Explain why the other two verifiers are NOT exploitable in the same way.\n4. Give the minimal one-line fix.\n\nCite artifact ids for every claim. Flagging a safe verifier as vulnerable is an error.",
+      "artifacts": [
+        {
+          "id": "verify-mw",
+          "kind": "code",
+          "label": "auth/verify.js — request middleware",
+          "body": "const jwt = require('jsonwebtoken');\n// PUBLIC_KEY is an RSA public key; tokens are signed RS256 by the auth service.\nfunction verify(req, res, next) {\n  const token = (req.headers.authorization || '').replace(/^Bearer /, '');\n  try {\n    // algorithms pinned to RS256 — header \"alg\" cannot downgrade this\n    const claims = jwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] });\n    req.user = claims;\n    next();\n  } catch (e) {\n    res.status(401).json({ error: 'invalid token' });\n  }\n}"
+        },
+        {
+          "id": "refresh",
+          "kind": "code",
+          "label": "auth/refresh.js — token refresh endpoint",
+          "body": "const jwt = require('jsonwebtoken');\n// Verifies the incoming refresh token, then mints a new access token.\nfunction refresh(req, res) {\n  const token = req.body.refreshToken || '';\n  // BUG SURFACE: no algorithms option is passed, so the library accepts\n  // whatever the token's header claims — including HS256 signed with the\n  // public key as an HMAC secret (alg-confusion).\n  jwt.verify(token, PUBLIC_KEY, (err, claims) => {\n    if (err) return res.status(401).json({ error: 'bad refresh' });\n    const access = mintAccessToken({ sub: claims.sub, role: claims.role });\n    res.json({ access });\n  });\n}"
+        },
+        {
+          "id": "ws-auth",
+          "kind": "code",
+          "label": "ws/auth.js — websocket handshake",
+          "body": "const jwt = require('jsonwebtoken');\nfunction wsAuth(socket) {\n  const token = socket.handshakeQuery.token || '';\n  // decode() NEVER verifies a signature — but the result is only used to\n  // pick a rate-limit bucket, never to grant privilege. Privilege is\n  // re-checked by verify() on every actual command.\n  const peek = jwt.decode(token) || {};\n  socket.bucket = peek.sub ? 'user' : 'anon';\n}"
+        },
+        {
+          "id": "env",
+          "kind": "config",
+          "label": "deploy/config.env",
+          "body": "AUTH_ALG=RS256\n# PUBLIC_KEY is distributed to every service and is NOT a secret — it ships\n# in the client bundle and is published at /.well-known/jwks.json\nPUBLIC_KEY_PATH=/etc/keys/auth.pub\nREFRESH_TTL=30d"
+        }
+      ],
+      "category": "security",
+      "publicHash": "be3072c420aa2e8e393ad69adf5fe1aa1ffcd2bdb7e68c6b068d3a8a27f4f154",
+      "privateHash": "3f8ad90da71c121f593cf2c1cc9e0cace662dee74c90a47eb350979407d49208",
+      "played": 2
+    },
+    {
+      "id": "security/path-traversal-download",
+      "version": 1,
+      "cluster": "taint-flow",
+      "difficulty": "standard",
+      "title": "A File Download Endpoint With One Un-Neutralized User Path",
+      "summary": "Two handlers take a user-supplied filename; one lets an attacker read /etc/passwd. Trace the taint.",
+      "prompt": "A file service exposes two download handlers, [avatar] and [export]. One sanitizes the user-controlled path and one does not. Using [routes] for how each is mounted, identify the single handler vulnerable to path traversal, show the exploit input and the file it discloses, and explain precisely why the other handler is safe. Give the minimal fix. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "avatar",
+          "kind": "code",
+          "label": "handlers/avatar.js",
+          "body": "const path = require('path');\nconst fs = require('fs');\nconst ROOT = '/srv/avatars';\nfunction avatar(req, res) {\n  const name = req.params.name;\n  // resolve then confirm the result is still inside ROOT\n  const full = path.resolve(ROOT, name);\n  if (!full.startsWith(ROOT + path.sep)) return res.status(403).end();\n  fs.createReadStream(full).pipe(res);\n}"
+        },
+        {
+          "id": "export",
+          "kind": "code",
+          "label": "handlers/export.js",
+          "body": "const fs = require('fs');\nconst ROOT = '/srv/exports/';\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  // concatenates directly — \"../\" segments are never neutralized\n  fs.readFile(ROOT + name, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}"
+        },
+        {
+          "id": "routes",
+          "kind": "config",
+          "label": "routes.js",
+          "body": "router.get('/avatars/:name', avatar);      // name is a single path segment\nrouter.get('/export', exportFile);          // file is a raw query string"
+        }
+      ],
+      "category": "security",
+      "publicHash": "766d6981398c16e664c9a836c4fb66dfc47f5ddcea21a63b5349fc79fc6e679b",
+      "privateHash": "2c13ceb2f50c10be90496c7e657bae1c424b539bb9984f792e8ebd85c0fc3b28",
+      "played": 4
+    },
+    {
+      "id": "security/sql-in-clause",
+      "version": 1,
+      "cluster": "vuln-discovery",
+      "difficulty": "standard",
+      "title": "Parameterized Everywhere Except the One Dynamic IN Clause",
+      "summary": "A repository parameterizes its queries — except one that builds an IN (...) list by hand. Find the injection.",
+      "prompt": "A data-access layer [repo] runs three queries. The team says \"everything is parameterized.\" Using the query builder [db], find the one query where user input reaches SQL unparameterized, show an injection payload and its effect, explain why the other two are safe, and give the minimal fix. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "repo",
+          "kind": "code",
+          "label": "repo/orders.js",
+          "body": "// findById: parameterized\nfunction findById(id) {\n  return db.query('SELECT * FROM orders WHERE id = $1', [id]);\n}\n// search: parameterized, even the LIKE\nfunction search(term) {\n  return db.query('SELECT * FROM orders WHERE note LIKE $1', ['%' + term + '%']);\n}\n// byIds: builds the IN list by string-joining the raw ids\nfunction byIds(ids) {\n  const list = ids.join(',');\n  return db.query('SELECT * FROM orders WHERE id IN (' + list + ')');\n}"
+        },
+        {
+          "id": "db",
+          "kind": "code",
+          "label": "db.js",
+          "body": "// thin wrapper over pg — $1,$2… are bound server-side and never interpolated\nmodule.exports.query = (text, params = []) => pool.query(text, params);"
+        }
+      ],
+      "category": "security",
+      "publicHash": "6d8112c9a06ea9d50413b393cc99db7c15925013116a3be135e70b03ce94a9e9",
+      "privateHash": "243d6f6f1ec85cf8dc755ee213842ab9fd1a450646cf7a820468a370353fe532",
+      "played": 3
+    },
+    {
+      "id": "debugging/race-double-charge",
+      "version": 1,
+      "cluster": "concurrency-defect",
+      "difficulty": "expert",
+      "title": "Customers Charged Twice When They Double-Click Checkout",
+      "summary": "A check-then-act on the idempotency key races under concurrency; a tempting log line points at retries instead.",
+      "prompt": "Support reports customers occasionally charged twice. The checkout path is [charge], the schema is [schema], and a fresh incident trace is in [trace]. There is also an ops hunch in [hunch]. Find the true root cause, explain the exact interleaving that produces a double charge, say why the ops hunch is a decoy, and give a fix that actually closes the race (not one that merely makes it rarer). Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "charge",
+          "kind": "code",
+          "label": "checkout/charge.js",
+          "body": "async function charge(userId, cartId, idemKey) {\n  // 1. has this idempotency key already been used?\n  const existing = await db.query(\n    'SELECT id FROM charges WHERE idem_key = $1', [idemKey]);\n  if (existing.rows.length) return existing.rows[0];   // already charged\n\n  // 2. no row found -> call the payment provider, then record it\n  const receipt = await provider.capture(userId, cartTotal(cartId));\n  const row = await db.query(\n    'INSERT INTO charges(idem_key, user_id, receipt) VALUES($1,$2,$3) RETURNING id',\n    [idemKey, userId, receipt.id]);\n  return row.rows[0];\n}"
+        },
+        {
+          "id": "schema",
+          "kind": "spec",
+          "label": "db/charges.sql",
+          "body": "CREATE TABLE charges (\n  id       BIGSERIAL PRIMARY KEY,\n  idem_key TEXT NOT NULL,          -- NOTE: no UNIQUE constraint\n  user_id  BIGINT NOT NULL,\n  receipt  TEXT NOT NULL,\n  created  TIMESTAMPTZ DEFAULT now()\n);\nCREATE INDEX idx_charges_idem ON charges(idem_key);  -- non-unique"
+        },
+        {
+          "id": "trace",
+          "kind": "log",
+          "label": "incident trace (one double charge)",
+          "body": "12:00:03.101 req A  SELECT charges WHERE idem_key=k9 -> 0 rows\n12:00:03.104 req B  SELECT charges WHERE idem_key=k9 -> 0 rows\n12:00:03.210 req A  provider.capture -> receipt rcpt_A\n12:00:03.244 req B  provider.capture -> receipt rcpt_B\n12:00:03.301 req A  INSERT charges(idem_key=k9) -> id 5567\n12:00:03.332 req B  INSERT charges(idem_key=k9) -> id 5568\n(two receipts, same idem_key k9, same cart)"
+        },
+        {
+          "id": "hunch",
+          "kind": "note",
+          "label": "ops hunch",
+          "body": "\"Our HTTP client retries on 5xx with a 200ms backoff. I bet the provider\nreturns a spurious 500, we retry, and both attempts succeed — we should turn\noff client retries on the capture call.\""
+        }
+      ],
+      "category": "debugging",
+      "publicHash": "23a82fd969d9e877084fcc4deb59402bba563f15b7556db8e58d4e1b4ff31c0a",
+      "privateHash": "65402c104652b4ecdf0b2c6e1b617a2bade5fea196d5b826d9a02a6501d3decd",
+      "played": 0
+    },
+    {
+      "id": "debugging/timezone-off-by-one",
+      "version": 1,
+      "cluster": "root-cause-isolation",
+      "difficulty": "hard",
+      "title": "Daily Report Counts Are Off by One Near Midnight",
+      "summary": "A report bucket boundary uses local-time formatting over UTC storage; a \"leap second\" decoy is planted.",
+      "prompt": "A daily-active-users report is occasionally off by one compared to raw events. Events are stored per [schema], bucketed by [bucket], with a sample discrepancy in [sample] and an engineer's theory in [theory]. Identify the real cause, show with the sample how an event lands in the wrong day, dismiss the decoy theory, and give the fix. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "schema",
+          "kind": "spec",
+          "label": "events table",
+          "body": "-- ts is stored in UTC (timestamptz), always.\nCREATE TABLE events (id BIGSERIAL, user_id BIGINT, ts TIMESTAMPTZ);\n-- server TZ = UTC; report worker runs on a box with TZ=America/New_York"
+        },
+        {
+          "id": "bucket",
+          "kind": "code",
+          "label": "report/bucket.js",
+          "body": "// buckets an event into a YYYY-MM-DD day key\nfunction dayKey(tsIso) {\n  const d = new Date(tsIso);           // parses the UTC instant fine\n  // toLocaleDateString uses the WORKER's local TZ (America/New_York)\n  return d.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'\n}"
+        },
+        {
+          "id": "sample",
+          "kind": "log",
+          "label": "discrepancy sample",
+          "body": "event ts (UTC): 2026-03-10T02:30:00Z\nraw daily query (UTC day):   bucket = 2026-03-10\nreport dayKey() output:      bucket = 2026-03-09\n=> user counted on Mar 9 by the report, Mar 10 by the raw query"
+        },
+        {
+          "id": "theory",
+          "kind": "note",
+          "label": "engineer theory",
+          "body": "\"March 10 is near a DST change and there was a leap second inserted in 2026.\nI think Date is mishandling the leap second and dropping an event.\""
+        }
+      ],
+      "category": "debugging",
+      "publicHash": "6af03a82a735410551b38c12a660872ac91872c463ab339b04e15cd39099624b",
+      "privateHash": "5b378b2c5706e98b495f645a8e8ce3cb9f4c284e5f5c6e91554f226d2cccd981",
+      "played": 0
+    },
+    {
+      "id": "debugging/n-plus-one-timeout",
+      "version": 1,
+      "cluster": "fix-adequacy",
+      "difficulty": "standard",
+      "title": "Dashboard Times Out Only for Power Users",
+      "summary": "An N+1 query scales with a user's project count; a cache decoy hides the symptom without fixing it.",
+      "prompt": "A dashboard endpoint [loader] times out, but only for users with many projects. Given the timing breakdown [timing] and a proposed patch [patch], identify the real cause, explain why it correlates with project count, judge whether the proposed patch actually fixes it or just hides the symptom, and give the correct fix. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "loader",
+          "kind": "code",
+          "label": "dashboard/loader.js",
+          "body": "async function loadDashboard(userId) {\n  const projects = await db.query(\n    'SELECT id, name FROM projects WHERE owner = $1', [userId]);\n  // for each project, fetch its latest deploy — one query per project\n  for (const p of projects.rows) {\n    const d = await db.query(\n      'SELECT status, at FROM deploys WHERE project = $1 ORDER BY at DESC LIMIT 1',\n      [p.id]);\n    p.latest = d.rows[0] || null;\n  }\n  return projects.rows;\n}"
+        },
+        {
+          "id": "timing",
+          "kind": "log",
+          "label": "timing by user",
+          "body": "user with   3 projects:  4 queries,   38 ms  total\nuser with  40 projects: 41 queries,  520 ms  total\nuser with 220 projects: 221 queries, 3180 ms  total  (gateway timeout at 3000ms)\neach deploy query: ~14 ms; projects query: ~9 ms"
+        },
+        {
+          "id": "patch",
+          "kind": "diff",
+          "label": "proposed patch",
+          "body": "+ // cache the whole dashboard for 60s per user\n+ const hit = cache.get('dash:' + userId);\n+ if (hit) return hit;\n  const projects = await db.query(...);\n  ...\n+ cache.set('dash:' + userId, projects.rows, 60);\n  return projects.rows;"
+        }
+      ],
+      "category": "debugging",
+      "publicHash": "d859cf0c74065bcb688615860befad4b2db4af26751c1ecb92e60d291e570bf5",
+      "privateHash": "453a794eddb233165188565744b90794334dfff7be1f303d211567d0ffee3a80",
+      "played": 0
+    },
+    {
+      "id": "refactoring/debounce-equivalence",
+      "version": 1,
+      "cluster": "behavior-preservation",
+      "difficulty": "hard",
+      "title": "Which Debounce Rewrite Preserves Trailing-Edge Behavior?",
+      "summary": "Three \"cleaner\" debounce rewrites of one original; exactly one changes when the callback fires.",
+      "prompt": "[original] is a working debounce used across the app. Three rewrites — [rw-a], [rw-b], [rw-c] — each claim to be an equivalent, cleaner version. Exactly one changes observable behavior. Identify the behavior-preserving rewrite(s) and the one that breaks, describe a concrete call sequence that distinguishes the broken one from the original, and state what the user-visible difference is. Cite artifact ids. The cleanest-looking rewrite is not automatically correct.",
+      "artifacts": [
+        {
+          "id": "original",
+          "kind": "code",
+          "label": "debounce.js (original, correct)",
+          "body": "function debounce(fn, wait) {\n  let t = null;\n  return function (...args) {\n    if (t) clearTimeout(t);\n    t = setTimeout(() => {\n      t = null;\n      fn.apply(this, args);        // trailing edge: last args, after quiet period\n    }, wait);\n  };\n}"
+        },
+        {
+          "id": "rw-a",
+          "kind": "code",
+          "label": "rewrite A",
+          "body": "const debounce = (fn, wait) => {\n  let t;\n  return function (...args) {\n    clearTimeout(t);               // clearTimeout(undefined) is a safe no-op\n    t = setTimeout(() => fn.apply(this, args), wait);\n  };\n};"
+        },
+        {
+          "id": "rw-b",
+          "kind": "code",
+          "label": "rewrite B",
+          "body": "const debounce = (fn, wait) => {\n  let t;\n  return (...args) => {            // arrow: 'this' is captured from definition site\n    clearTimeout(t);\n    t = setTimeout(() => fn.apply(this, args), wait);\n  };\n};"
+        },
+        {
+          "id": "rw-c",
+          "kind": "code",
+          "label": "rewrite C",
+          "body": "function debounce(fn, wait) {\n  let t = null;\n  return function (...args) {\n    if (t) clearTimeout(t);\n    t = setTimeout(function () {\n      t = null;\n      fn.apply(this, args);        // note: plain function, called by timer\n    }, wait);\n  };\n}"
+        }
+      ],
+      "category": "refactoring",
+      "publicHash": "30bc877b348d35a42d7c5566b8f00fcda840b62657a6fcd5781165d9ecb1620a",
+      "privateHash": "860d2da99e38b26a94c4c5b3a08cbf6e5e2c1d81906d7a674fc223dd2713a982",
+      "played": 0
+    },
+    {
+      "id": "refactoring/reduce-vs-loop-short-circuit",
+      "version": 1,
+      "cluster": "semantic-equivalence",
+      "difficulty": "standard",
+      "title": "A Loop With an Early Return, Rewritten as a Reduce",
+      "summary": "The original short-circuits on the first match; one rewrite silently keeps the last match instead.",
+      "prompt": "[original] finds the first enabled plugin that can handle an event. Two rewrites [rw-a] and [rw-b] claim equivalence. Identify which rewrite changes behavior, give an input where the outputs differ, and state the difference. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "original",
+          "kind": "code",
+          "label": "original",
+          "body": "function firstHandler(plugins, event) {\n  for (const p of plugins) {\n    if (p.enabled && p.canHandle(event)) return p;   // first match wins\n  }\n  return null;\n}"
+        },
+        {
+          "id": "rw-a",
+          "kind": "code",
+          "label": "rewrite A",
+          "body": "const firstHandler = (plugins, event) =>\n  plugins.find(p => p.enabled && p.canHandle(event)) ?? null;"
+        },
+        {
+          "id": "rw-b",
+          "kind": "code",
+          "label": "rewrite B",
+          "body": "const firstHandler = (plugins, event) =>\n  plugins.reduce(\n    (acc, p) => (p.enabled && p.canHandle(event) ? p : acc),\n    null);   // keeps the LAST match, not the first"
+        }
+      ],
+      "category": "refactoring",
+      "publicHash": "2c9b90138c589491a01e68bc181b4547e4af47ed373f0ef9d2bd41ad7b6e477f",
+      "privateHash": "a1c0ef5c52427e7609df0bb79c86b63a6595e2af5fa5dd2c59a1cc39229282e1",
+      "played": 0
+    },
+    {
+      "id": "refactoring/extract-default-param",
+      "version": 1,
+      "cluster": "extract-and-inline",
+      "difficulty": "standard",
+      "title": "Extracting a Default: Shared Mutable vs Fresh Each Call",
+      "summary": "Hoisting a default array out of the signature turns a per-call fresh value into shared mutable state.",
+      "prompt": "[original] appends to a per-call list. A rewrite [rw] extracts the default to a constant \"to avoid re-allocating.\" Decide whether [rw] is behavior-preserving; if not, give a call sequence that exposes the difference and explain the bug class. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "original",
+          "kind": "code",
+          "label": "original",
+          "body": "function collect(item, into = []) {\n  into.push(item);           // default [] is created fresh on each call that omits it\n  return into;\n}"
+        },
+        {
+          "id": "rw",
+          "kind": "code",
+          "label": "rewrite",
+          "body": "const SHARED = [];\nfunction collect(item, into = SHARED) {   // \"reuse one array to avoid allocation\"\n  into.push(item);\n  return into;\n}"
+        }
+      ],
+      "category": "refactoring",
+      "publicHash": "bf609f2d03bc1b901efb594b64e72e2d0d4a72ebdd260c4e0a7b7554253d7d22",
+      "privateHash": "7af4ebe6e49d42f40fb1f0311cfca249b4ff46773a09685b7dbaf9f015ba7185",
+      "played": 0
+    },
+    {
+      "id": "reasoning/semver-resolution",
+      "version": 1,
+      "cluster": "constraint-reconciliation",
+      "difficulty": "hard",
+      "title": "One Valid Version Assignment Under Ranges, a Peer Dep, and a Pin",
+      "summary": "Resolve four packages to the single assignment satisfying every SemVer range, a peer dep, single-instance, and a lockfile pin.",
+      "prompt": "The resolver must pick exactly one version of each package so every constraint holds at once. Rules are in [spec]; package ranges in [registry]; the app's direct deps and the lockfile pin in [manifest]; all published versions in [versions]. Cite artifact ids for every claim.\n\n1. Give the one valid version of app-core, app-ui, app-log, and util. Show it satisfies every util range, the peer dep, the single-instance rule, and the pin.\n2. For app-core, app-log, and util, name what stops each from going higher.\n3. If the pin on app-ui were removed, which single package's version changes, and to what?",
+      "artifacts": [
+        {
+          "id": "spec",
+          "kind": "spec",
+          "label": "resolver rules",
+          "body": "RULES (highest-compatible selection):\n- Pick the HIGHEST published version of each package that satisfies all constraints.\n- LOCKFILE PIN is authoritative: a pinned package resolves to exactly the pinned version.\n- SINGLE-INSTANCE: util is installed at most once, shared by all dependents.\n- Ranges are half-open: >=X <Y excludes Y. ^A.B.C means >=A.B.C <(A+1).0.0."
+        },
+        {
+          "id": "registry",
+          "kind": "table",
+          "label": "package dependency ranges",
+          "body": "app-core 2.1.0  -> util >=4.0.0 <4.5.0\napp-core 2.2.0  -> util >=4.5.0 <5.0.0\napp-log  3.0.0  -> util >=3.5.0 <5.0.0\napp-log  3.1.0  -> util >=4.5.0 <5.0.0\napp-ui   1.1.0  -> util >=4.0.0 <5.0.0 ; peer app-core >=2.1.0\napp-ui   1.2.0  -> util >=4.5.0 <5.0.0 ; peer app-core >=2.2.0"
+        },
+        {
+          "id": "manifest",
+          "kind": "config",
+          "label": "app manifest + lockfile",
+          "body": "dependencies: app-core ^2.0.0, app-ui ^1.0.0, app-log ^3.0.0\nlockfile pin: app-ui = 1.1.0"
+        },
+        {
+          "id": "versions",
+          "kind": "table",
+          "label": "published versions",
+          "body": "app-core: 2.0.0, 2.1.0, 2.2.0\napp-ui:   1.1.0, 1.2.0\napp-log:  3.0.0, 3.1.0\nutil:     4.0.0, 4.4.0, 4.5.0, 4.6.0"
+        }
+      ],
+      "category": "reasoning",
+      "publicHash": "e46b926f0af0f63796286f8dca14ac92de58a1add8c31d58810f751200927994",
+      "privateHash": "4bd3df6e09fd5656c5bc758b0598fc6cbc634e0f9ecda8ee103ce3a48e406233",
+      "played": 0
+    },
+    {
+      "id": "reasoning/rate-limit-matrix",
+      "version": 1,
+      "cluster": "multi-artifact-synthesis",
+      "difficulty": "hard",
+      "title": "Effective Rate Limit Across Route, Plan, and a Global Cap",
+      "summary": "Three layers of limits stack; the effective ceiling is the tightest that applies, and a decoy note misreads it.",
+      "prompt": "A gateway applies rate limits from three configs: per-route [route], per-plan [plan], and a global [global]. A support note [note] states a customer's effective limit. Using the precedence rules in [rules], compute the true effective requests-per-minute for a Pro customer calling POST /search, say whether the support note is right, and cite the configs. ",
+      "artifacts": [
+        {
+          "id": "rules",
+          "kind": "spec",
+          "label": "precedence rules",
+          "body": "The effective limit for a request is the MINIMUM of every limit that applies:\nits route limit, its plan limit, and the global per-customer cap. Limits are\nrequests per minute (rpm). A route with no explicit limit inherits the plan limit."
+        },
+        {
+          "id": "route",
+          "kind": "config",
+          "label": "route limits",
+          "body": "GET  /search  -> 600 rpm\nPOST /search  -> 120 rpm\nPOST /index   -> 60 rpm"
+        },
+        {
+          "id": "plan",
+          "kind": "config",
+          "label": "plan limits",
+          "body": "Free -> 60 rpm\nPro  -> 300 rpm\nEnterprise -> 5000 rpm"
+        },
+        {
+          "id": "global",
+          "kind": "config",
+          "label": "global cap",
+          "body": "Global per-customer cap: 1000 rpm (applies to every customer regardless of plan)."
+        },
+        {
+          "id": "note",
+          "kind": "note",
+          "label": "support note",
+          "body": "\"Pro customer, POST /search. Pro is 300 rpm, so their limit is 300 rpm.\""
+        }
+      ],
+      "category": "reasoning",
+      "publicHash": "ed47cf82645d85dc6f1f214e445463eafcdeebe8f341715d8c8e7336b2b987ac",
+      "privateHash": "79ca76bf5bc0f2d39b15dcf4c65414e74bfa567d3627bc3b8b5ad63a3af0349e",
+      "played": 0
+    },
+    {
+      "id": "reasoning/deadlock-ordering",
+      "version": 1,
+      "cluster": "root-cause-reasoning",
+      "difficulty": "expert",
+      "title": "Which Two Transactions Can Deadlock, and Why the Third Cannot",
+      "summary": "Three transactions acquire the same locks; find the pair with a cyclic wait and prove the third is safe.",
+      "prompt": "Three transactions acquire row locks in the orders of [txns], under the lock rules in [rules]. Identify which pair can deadlock, give the exact interleaving that forms the cycle, and prove that the remaining transaction cannot participate in a deadlock with either. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "rules",
+          "kind": "spec",
+          "label": "lock rules",
+          "body": "Locks are exclusive per row and held until commit. A transaction blocks while\nwaiting for a lock another holds. A deadlock exists iff there is a cycle of\ntransactions each waiting for a row held by the next."
+        },
+        {
+          "id": "txns",
+          "kind": "spec",
+          "label": "transactions (lock acquisition order)",
+          "body": "T1: lock A, then lock B, then commit.\nT2: lock B, then lock A, then commit.\nT3: lock A, then lock B, then commit.   (same order as T1)"
+        }
+      ],
+      "category": "reasoning",
+      "publicHash": "ee994e763048f2cdfca20a9fbe2c73907618282483bf88102bb938d6b697c7b0",
+      "privateHash": "481bb73c1a6546e9e41d89ab87cbe0d55b9183705e9d1f5dee8d50842bfd84d7",
+      "played": 0
+    },
+    {
+      "id": "hallucination/false-migration",
+      "version": 1,
+      "cluster": "false-premise",
+      "difficulty": "expert",
+      "title": "Fallout Numbers for a Migration That Never Happened",
+      "summary": "A review note asks for costs of a Kubernetes migration and a spot-instance move the authoritative records prove never occurred.",
+      "prompt": "A director's review-prep note asks for exact Q3 numbers. Some deliverables presuppose events that the quarter's authoritative records prove never happened. Verify every premise against [changes] (self-declared complete) and [inventory] (self-declared complete). If a deliverable presupposes something these records rule out, say so, cite the exhaustiveness evidence, then answer the nearest legitimate question from the artifacts. Answer answerable deliverables exactly. Cite artifact ids.\n\n1. How much LOWER was ingest-service's September compute cost than the same instance-hours at the pre-change rate? Show the arithmetic.\n2. After the Q3 Kubernetes migration of ingest-service, how many pod evictions did it suffer in September, and their cost?\n3. Name the team that approved ingest-service's Q3 move to spot instances and the observed spot-interruption rate.",
+      "artifacts": [
+        {
+          "id": "changes",
+          "kind": "log",
+          "label": "Q3 change record (self-declared complete)",
+          "body": "DECLARATION: complete, authoritative record of EVERY Q3 infra change. Any change\nnot listed DID NOT OCCUR. Scope includes platform/runtime migrations (VM<->K8s),\npurchasing-option changes (on-demand/spot/reserved), instance-family changes.\nCH-1: ingest-service instance family m5.2xlarge -> m6i.2xlarge, effective\n  2025-09-01. Purchasing option UNCHANGED: on-demand before and after.\nCH-2: ingest.batch_size 500 -> 2000 on 2025-09-18 (config only).\nFor the avoidance of doubt: no change moves any service onto/off Kubernetes,\nand none alters any service's purchasing option."
+        },
+        {
+          "id": "inventory",
+          "kind": "spec",
+          "label": "service inventory (self-declared complete)",
+          "body": "DECLARATION: complete list of every production service and runtime.\n- ingest-service: EC2 VMs, 12 x m6i.2xlarge (m5.2xlarge until CH-1). NOT\n  containerized; has NEVER run on Kubernetes.\n100% of Q3 usage was billed on-demand. Zero spot-instance line items, zero\nspot-interruption events in the quarter."
+        },
+        {
+          "id": "cost",
+          "kind": "table",
+          "label": "September cost facts",
+          "body": "ingest-service: 12 instances x 720 hours (September) = 8,640 instance-hours.\nRates (fixed, published): m5.2xlarge = $0.42/hr ; m6i.2xlarge = $0.37/hr."
+        }
+      ],
+      "category": "hallucination",
+      "publicHash": "33e35d9b34ca5324b3a33e46e3294bac7177098e13854a5a91894b2115775fe7",
+      "privateHash": "49fead0043e84b7c4a867cdd8bef6484cbabedb1a14ecdb4e320b6fced25fecb",
+      "played": 0
+    },
+    {
+      "id": "hallucination/invented-api",
+      "version": 1,
+      "cluster": "entity-fabrication",
+      "difficulty": "hard",
+      "title": "A Question About an SDK Method That Does Not Exist",
+      "summary": "A user asks how to use a method that is not in the SDK surface; the honest answer names what does exist.",
+      "prompt": "A developer writes: \"How do I call client.retryWithBackoff(fn, {jitter:true}) in the Acme SDK to auto-retry a request? Also, what's the default number of retries?\" The complete public SDK surface is [surface] and the retry guidance is [guide]. Answer accurately. If the method does not exist, say so plainly and point to the real supported mechanism from the artifacts. Do not invent a signature or a default. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "surface",
+          "kind": "spec",
+          "label": "Acme SDK — complete public surface",
+          "body": "class AcmeClient {\n  request(path, opts)          // opts: { method, body, headers, timeoutMs, retries }\n  get(path, opts)\n  post(path, body, opts)\n  setDefaultRetries(n)         // sets the client-wide retry count (default 0)\n}\n// This is the ENTIRE public API. There is no retryWithBackoff method."
+        },
+        {
+          "id": "guide",
+          "kind": "note",
+          "label": "retry guidance",
+          "body": "Retries are configured per-call via opts.retries, or client-wide via\nsetDefaultRetries(n). Backoff is exponential and not user-configurable; there\nis no jitter option. The default retry count is 0 (retries are opt-in)."
+        }
+      ],
+      "category": "hallucination",
+      "publicHash": "4ef6521f83210ea50c9ba1571c2f1e99cf8f9ed020870605b7435cbcebaabf46",
+      "privateHash": "99a645db70df8cd46a5e4355383acdbf5bf31e6351d958e1d9b2cb02399835be",
+      "played": 0
+    },
+    {
+      "id": "hallucination/conflicting-sources",
+      "version": 1,
+      "cluster": "conflicting-sources",
+      "difficulty": "standard",
+      "title": "Two Docs Disagree on the Timeout Default — Which Governs?",
+      "summary": "A changelog supersedes an older guide; the honest answer resolves the conflict by authority and date, not by averaging.",
+      "prompt": "A developer asks: \"What is the default request timeout?\" Two sources disagree: an older setup guide [guide] and the release changelog [changelog], plus the precedence policy [policy]. Give the correct current default, explain which source governs and why, and note the value the other source states. Do not average or guess. Cite artifact ids.",
+      "artifacts": [
+        {
+          "id": "policy",
+          "kind": "spec",
+          "label": "documentation precedence policy",
+          "body": "When sources conflict, the CHANGELOG for the installed version is authoritative\nand supersedes older prose guides. Guides are updated on a best-effort basis."
+        },
+        {
+          "id": "guide",
+          "kind": "note",
+          "label": "setup guide (last edited 2025-11)",
+          "body": "\"The default request timeout is 30 seconds.\""
+        },
+        {
+          "id": "changelog",
+          "kind": "log",
+          "label": "changelog (v4.0, 2026-05)",
+          "body": "v4.0 (2026-05): BREAKING — default request timeout lowered from 30s to 10s\nto fail faster under provider outages. Set opts.timeoutMs to override."
+        }
+      ],
+      "category": "hallucination",
+      "publicHash": "d64dec5ca614f5afc6d5a1155155b818603ae6483938e79b64f8d94eeb075b5e",
+      "privateHash": "31173e2f865bc8cfdcb7504d1042d7ffcdbbd54ed7b5579664e57ced66c2132c",
+      "played": 0
+    }
+  ],
+  "source": "ApexBench arena — own task packs, blind cross-vendor judged head-to-head matches, append-only journal",
+  "eloStart": 1000,
+  "eloK": 32,
+  "provisionalUnder": 10,
+  "totalDecided": 5,
+  "totalForfeits": 0,
+  "totalNoContests": 5,
+  "categories": [
+    "security",
+    "debugging",
+    "refactoring",
+    "reasoning",
+    "hallucination"
+  ],
+  "ladders": {
+    "security": [
+      {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "rawElo": 1031,
+        "elo": 1005,
+        "wins": 2,
+        "losses": 0,
+        "matches": 2,
+        "unanimous": 2,
+        "winPct": 100,
+        "provisional": true
+      },
+      {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+        "rawElo": 1016,
+        "elo": 1001,
+        "wins": 1,
+        "losses": 0,
+        "matches": 1,
+        "unanimous": 0,
+        "winPct": 100,
+        "provisional": true
+      },
+      {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free",
+        "rawElo": 999,
+        "elo": 1000,
+        "wins": 1,
+        "losses": 1,
+        "matches": 2,
+        "unanimous": 0,
+        "winPct": 50,
+        "provisional": true
+      },
+      {
+        "name": "Laguna M.1",
+        "provider": "Poolside",
+        "slug": "poolside/laguna-m.1:free",
+        "rawElo": 1002,
+        "elo": 1000,
+        "wins": 1,
+        "losses": 1,
+        "matches": 2,
+        "unanimous": 0,
+        "winPct": 50,
+        "provisional": true
+      },
+      {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free",
+        "rawElo": 984,
+        "elo": 999,
+        "wins": 0,
+        "losses": 1,
+        "matches": 1,
+        "unanimous": 0,
+        "winPct": 0,
+        "provisional": true
+      },
+      {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free",
+        "rawElo": 970,
+        "elo": 995,
+        "wins": 0,
+        "losses": 2,
+        "matches": 2,
+        "unanimous": 0,
+        "winPct": 0,
+        "provisional": true
+      }
+    ],
+    "debugging": [],
+    "refactoring": [],
+    "reasoning": [],
+    "hallucination": []
+  },
+  "overall": [
+    {
+      "name": "Nemotron 3 Ultra 550B",
+      "provider": "NVIDIA",
+      "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "score": 1005,
+      "cats": 1,
+      "wins": 2,
+      "losses": 0,
+      "matches": 2,
+      "winPct": 100
+    },
+    {
+      "name": "Nemotron 3 Super 120B",
+      "provider": "NVIDIA",
+      "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+      "score": 1001,
+      "cats": 1,
+      "wins": 1,
+      "losses": 0,
+      "matches": 1,
+      "winPct": 100
+    },
+    {
+      "name": "GPT-OSS 20B",
+      "provider": "OpenAI",
+      "slug": "openai/gpt-oss-20b:free",
+      "score": 1000,
+      "cats": 1,
+      "wins": 1,
+      "losses": 1,
+      "matches": 2,
+      "winPct": 50
+    },
+    {
+      "name": "Laguna M.1",
+      "provider": "Poolside",
+      "slug": "poolside/laguna-m.1:free",
+      "score": 1000,
+      "cats": 1,
+      "wins": 1,
+      "losses": 1,
+      "matches": 2,
+      "winPct": 50
+    },
+    {
+      "name": "Ling 3.0 Flash",
+      "provider": "InclusionAI",
+      "slug": "inclusionai/ling-3.0-flash:free",
+      "score": 999,
+      "cats": 1,
+      "wins": 0,
+      "losses": 1,
+      "matches": 1,
+      "winPct": 0
+    },
+    {
+      "name": "Gemma 4 26B",
+      "provider": "Google",
+      "slug": "google/gemma-4-26b-a4b-it:free",
+      "score": 995,
+      "cats": 1,
+      "wins": 0,
+      "losses": 2,
+      "matches": 2,
+      "winPct": 0
+    }
+  ],
+  "podiums": {
+    "security": [
+      {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "rawElo": 1031,
+        "elo": 1005,
+        "wins": 2,
+        "losses": 0,
+        "matches": 2,
+        "unanimous": 2,
+        "winPct": 100,
+        "provisional": true
+      },
+      {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+        "rawElo": 1016,
+        "elo": 1001,
+        "wins": 1,
+        "losses": 0,
+        "matches": 1,
+        "unanimous": 0,
+        "winPct": 100,
+        "provisional": true
+      },
+      {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free",
+        "rawElo": 999,
+        "elo": 1000,
+        "wins": 1,
+        "losses": 1,
+        "matches": 2,
+        "unanimous": 0,
+        "winPct": 50,
+        "provisional": true
+      }
+    ],
+    "debugging": [],
+    "refactoring": [],
+    "reasoning": [],
+    "hallucination": []
+  },
+  "headToHead": [
+    {
+      "pair": [
+        "inclusionai/ling-3.0-flash:free",
+        "openai/gpt-oss-20b:free"
+      ],
+      "byCat": {
+        "security": {
+          "openai/gpt-oss-20b:free": 1
+        }
+      },
+      "meetings": [
+        {
+          "matchId": "match-b4d831b08734125ebd75",
+          "category": "security",
+          "ranAt": "2026-07-25T21:24:55.922Z",
+          "task": "Parameterized Everywhere Except the One Dynamic IN Clause",
+          "cluster": "vuln-discovery",
+          "winnerSlug": "openai/gpt-oss-20b:free",
+          "loserSlug": "inclusionai/ling-3.0-flash:free",
+          "panel": "2-0",
+          "unanimous": false,
+          "eloDelta": -16
+        }
+      ]
+    },
+    {
+      "pair": [
+        "google/gemma-4-26b-a4b-it:free",
+        "nvidia/nemotron-3-ultra-550b-a55b:free"
+      ],
+      "byCat": {
+        "security": {
+          "nvidia/nemotron-3-ultra-550b-a55b:free": 2
+        }
+      },
+      "meetings": [
+        {
+          "matchId": "match-6da458621c6b4a76fbdb",
+          "category": "security",
+          "ranAt": "2026-07-27T20:02:11.238Z",
+          "task": "A File Download Endpoint With One Un-Neutralized User Path",
+          "cluster": "taint-flow",
+          "winnerSlug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "loserSlug": "google/gemma-4-26b-a4b-it:free",
+          "panel": "3-0",
+          "unanimous": true,
+          "eloDelta": -14.5
+        },
+        {
+          "matchId": "match-aea6899099b56918980e",
+          "category": "security",
+          "ranAt": "2026-07-25T21:30:09.088Z",
+          "task": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+          "cluster": "authz-boundary",
+          "winnerSlug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "loserSlug": "google/gemma-4-26b-a4b-it:free",
+          "panel": "3-0",
+          "unanimous": true,
+          "eloDelta": -16
+        }
+      ]
+    },
+    {
+      "pair": [
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "poolside/laguna-m.1:free"
+      ],
+      "byCat": {
+        "security": {
+          "nvidia/nemotron-3-super-120b-a12b:free": 1
+        }
+      },
+      "meetings": [
+        {
+          "matchId": "match-6e624a6f55c33f0d5f8c",
+          "category": "security",
+          "ranAt": "2026-07-27T18:53:42.511Z",
+          "task": "A File Download Endpoint With One Un-Neutralized User Path",
+          "cluster": "taint-flow",
+          "winnerSlug": "nvidia/nemotron-3-super-120b-a12b:free",
+          "loserSlug": "poolside/laguna-m.1:free",
+          "panel": "2-0",
+          "unanimous": false,
+          "eloDelta": 16
+        }
+      ]
+    },
+    {
+      "pair": [
+        "openai/gpt-oss-20b:free",
+        "poolside/laguna-m.1:free"
+      ],
+      "byCat": {
+        "security": {
+          "poolside/laguna-m.1:free": 1
+        }
+      },
+      "meetings": [
+        {
+          "matchId": "match-0f5599397f079d2c7e16",
+          "category": "security",
+          "ranAt": "2026-07-27T19:01:40.713Z",
+          "task": "A File Download Endpoint With One Un-Neutralized User Path",
+          "cluster": "taint-flow",
+          "winnerSlug": "poolside/laguna-m.1:free",
+          "loserSlug": "openai/gpt-oss-20b:free",
+          "panel": "2-1",
+          "unanimous": false,
+          "eloDelta": 17.5
+        }
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "matchId": "match-575d7f934cb7af605872",
+      "category": "security",
+      "ranAt": "2026-07-27T20:06:09.774Z",
+      "taskId": "security/sql-in-clause",
+      "task": "Parameterized Everywhere Except the One Dynamic IN Clause",
+      "cluster": "vuln-discovery",
+      "difficulty": "standard",
+      "a": {
+        "name": "North Mini Code",
+        "provider": "Cohere",
+        "slug": "cohere/north-mini-code:free"
+      },
+      "b": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "eloDelta": null
+    },
+    {
+      "matchId": "match-6da458621c6b4a76fbdb",
+      "category": "security",
+      "ranAt": "2026-07-27T20:02:11.238Z",
+      "taskId": "security/path-traversal-download",
+      "task": "A File Download Endpoint With One Un-Neutralized User Path",
+      "cluster": "taint-flow",
+      "difficulty": "standard",
+      "a": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free"
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "3-0",
+      "unanimous": true,
+      "eloDelta": -14.5
+    },
+    {
+      "matchId": "match-a1cb25af44e87cdf6185",
+      "category": "security",
+      "ranAt": "2026-07-27T19:50:41.731Z",
+      "taskId": "security/sql-in-clause",
+      "task": "Parameterized Everywhere Except the One Dynamic IN Clause",
+      "cluster": "vuln-discovery",
+      "difficulty": "standard",
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "eloDelta": null
+    },
+    {
+      "matchId": "match-e810b96e81497b05082b",
+      "category": "security",
+      "ranAt": "2026-07-27T19:38:56.058Z",
+      "taskId": "security/path-traversal-download",
+      "task": "A File Download Endpoint With One Un-Neutralized User Path",
+      "cluster": "taint-flow",
+      "difficulty": "standard",
+      "a": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free"
+      },
+      "b": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "eloDelta": null
+    },
+    {
+      "matchId": "match-bd3d34d06eff8dd016cc",
+      "category": "security",
+      "ranAt": "2026-07-27T19:30:02.649Z",
+      "taskId": "security/jwt-alg-confusion",
+      "task": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+      "cluster": "authz-boundary",
+      "difficulty": "hard",
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "eloDelta": null
+    },
+    {
+      "matchId": "match-0f5599397f079d2c7e16",
+      "category": "security",
+      "ranAt": "2026-07-27T19:01:40.713Z",
+      "taskId": "security/path-traversal-download",
+      "task": "A File Download Endpoint With One Un-Neutralized User Path",
+      "cluster": "taint-flow",
+      "difficulty": "standard",
+      "a": {
+        "name": "Laguna M.1",
+        "provider": "Poolside",
+        "slug": "poolside/laguna-m.1:free"
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free"
+      },
+      "outcome": "judged",
+      "winner": "a",
+      "panel": "2-1",
+      "unanimous": false,
+      "eloDelta": 17.5
+    },
+    {
+      "matchId": "match-6e624a6f55c33f0d5f8c",
+      "category": "security",
+      "ranAt": "2026-07-27T18:53:42.511Z",
+      "taskId": "security/path-traversal-download",
+      "task": "A File Download Endpoint With One Un-Neutralized User Path",
+      "cluster": "taint-flow",
+      "difficulty": "standard",
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+      },
+      "b": {
+        "name": "Laguna M.1",
+        "provider": "Poolside",
+        "slug": "poolside/laguna-m.1:free"
+      },
+      "outcome": "judged",
+      "winner": "a",
+      "panel": "2-0",
+      "unanimous": false,
+      "eloDelta": 16
+    },
+    {
+      "matchId": "match-aea6899099b56918980e",
+      "category": "security",
+      "ranAt": "2026-07-25T21:30:09.088Z",
+      "taskId": "security/jwt-alg-confusion",
+      "task": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+      "cluster": "authz-boundary",
+      "difficulty": "hard",
+      "a": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free"
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "3-0",
+      "unanimous": true,
+      "eloDelta": -16
+    },
+    {
+      "matchId": "match-b4d831b08734125ebd75",
+      "category": "security",
+      "ranAt": "2026-07-25T21:24:55.922Z",
+      "taskId": "security/sql-in-clause",
+      "task": "Parameterized Everywhere Except the One Dynamic IN Clause",
+      "cluster": "vuln-discovery",
+      "difficulty": "standard",
+      "a": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free"
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "2-0",
+      "unanimous": false,
+      "eloDelta": -16
+    }
+  ]
+}

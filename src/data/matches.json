@@ -1,0 +1,981 @@
+{
+  "updatedAt": "2026-07-27T20:12:26.703Z",
+  "matches": {
+    "match-b4d831b08734125ebd75": {
+      "matchId": "match-b4d831b08734125ebd75",
+      "category": "security",
+      "ranAt": "2026-07-25T21:24:55.922Z",
+      "task": {
+        "id": "security/sql-in-clause",
+        "version": 1,
+        "cluster": "vuln-discovery",
+        "difficulty": "standard",
+        "title": "Parameterized Everywhere Except the One Dynamic IN Clause",
+        "summary": "A repository parameterizes its queries — except one that builds an IN (...) list by hand. Find the injection.",
+        "publicHash": "6d8112c9a06ea9d50413b393cc99db7c15925013116a3be135e70b03ce94a9e9",
+        "privateHash": "243d6f6f1ec85cf8dc755ee213842ab9fd1a450646cf7a820468a370353fe532"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "2-0",
+      "unanimous": false,
+      "reason": null,
+      "a": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free",
+        "response": "The vulnerable query is `byIds` in [repo].\n\n**Exploitability Evidence:**\nIn `byIds`, the `ids` array is joined directly into the SQL string via `ids.join(',')` [repo]. If an attacker supplies `ids = ['1 OR 1=1']` [repo], the resulting query string becomes `SELECT * FROM orders WHERE id IN (1 OR 1=1)` [repo]. Because the input is concatenated without sanitization or parameter binding, the database parses `OR 1=1` as executable SQL syntax, causing the query to return every row in the `orders` table [repo].\n\n**Why the Other Two Are Safe:**\n* `findById` uses the `$1` placeholder and passes `id` as a parameter array `[id]` [repo]. The `db.query` wrapper sends the query text and parameters separately to the PostgreSQL driver [db]. The database engine treats the parameter strictly as data, never parsing it as SQL syntax, which prevents injection [db].\n* `search` similarly uses the `$1` placeholder for the `LIKE` clause [repo]. Although the `%` wildcards are concatenated into the string `'%' + term + '%'` before being passed to the driver, the final value is still bound as a parameter [repo]. The database interprets the wildcards as literal pattern characters within the data, not as SQL commands [db].\n\n**Minimal Fix:**\nTo fix `byIds`, dynamically generate the correct number of parameterized placeholders and pass the `ids` array as query parameters [repo]:\n```javascript\nfunction byIds(ids) {\n  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n  return db.query(`SELECT * FROM orders WHERE id IN (${placeholders})`, ids);\n}\n```\nThis ensures the `ids` values are bound as parameters by the driver [db], keeping the query structure separate from the data [repo].",
+        "tokens": 2785,
+        "reasoningTokens": 2175,
+        "ms": 36888,
+        "genId": "gen-1785014477-cZ235CGDx2FjXlGyCBCO",
+        "eloBefore": 1000,
+        "eloAfter": 984
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free",
+        "response": "**The vulnerable query**\n\nThe only place where user‑supplied data is concatenated directly into the SQL string is the `byIds` function in **[repo] repo/orders.js**:\n\n```js\nfunction byIds(ids) {\n  const list = ids.join(',');\n  return db.query('SELECT * FROM orders WHERE id IN (' + list + ')');\n}\n```\n\n`ids` is an array that comes from the caller (e.g., a request parameter).  \nThe array is joined into a comma‑separated string and inserted into the query text without any parameter binding.  \nBecause the `db.query` wrapper in **[db] db.js** only binds parameters that are passed as the second argument, the `list` string is **not** treated as a parameter – it is interpolated into the SQL text itself.  \nThus any malicious content in `ids` can be executed by the database.\n\n---\n\n### Injection payload and effect\n\nAssume the caller passes the following array:\n\n```js\nids = ['1', '2', '3); DROP TABLE orders; --'];\n```\n\nThe resulting SQL string becomes:\n\n```sql\nSELECT * FROM orders WHERE id IN (1,2,3); DROP TABLE orders; --)\n```\n\nWhen executed, the database will:\n\n1. Return rows with `id` 1, 2, or 3.\n2. Execute `DROP TABLE orders;` – deleting the entire table.\n3. The trailing `--)` comments out the rest of the statement.\n\nThis demonstrates that the query is fully exploitable; the attacker can inject arbitrary SQL.\n\n---\n\n### Why the other two queries are safe\n\n1. **`findById`**  \n   ```js\n   db.query('SELECT * FROM orders WHERE id = $1', [id]);\n   ```  \n   The value of `id` is passed as a bound parameter (`$1`). The PostgreSQL driver (`pg`) performs server‑side binding, so the value is never interpolated into the SQL text. Even if `id` contains SQL syntax, it is treated as a literal value.  \n\n2. **`search`**  \n   ```js\n   db.query('SELECT * FROM orders WHERE note LIKE $1', ['%' + term + '%']);\n   ```  \n   The `term` is also passed as a bound parameter (`$1`). The surrounding `%` wildcards are part of the parameter value, not part of the query string. Thus the driver safely escapes any special characters in `term`.  \n\nBoth functions rely on the `$n` placeholder mechanism provided by **[db] db.js**, which guarantees that user input cannot alter the query structure.\n\n---\n\n### Minimal fix for `byIds`\n\nReplace the string concatenation with a parameterized `IN` clause.  \nPostgreSQL supports passing an array as a single parameter and using the `ANY` operator, or we can generate a list of placeholders dynamically.\n\n**Option 1 – use `ANY` with an array parameter**\n\n```js\nfunction byIds(ids) {\n  // ids is an array of numbers/strings\n  return db.query(\n    'SELECT * FROM orders WHERE id = ANY($1::int[])',\n    [ids]\n  );\n}\n```\n\n**Option 2 – generate placeholders**\n\n```js\nfunction byIds(ids) {\n  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n  return db.query(\n    `SELECT * FROM orders WHERE id IN (${placeholders})`,\n    ids\n  );\n}\n```\n\nEither approach ensures that every element of `ids` is passed as a bound parameter, preventing any injection.  \nThe change is minimal: only the query construction logic is altered; the rest of the function remains the same.",
+        "tokens": 837,
+        "reasoningTokens": 57,
+        "ms": 23070,
+        "genId": "gen-1785014462-OUhIDkOaFxqBAa3a3Qb1",
+        "eloBefore": 1000,
+        "eloAfter": 1016
+      },
+      "judges": [
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        },
+        {
+          "name": "Nemotron 3 Super 120B",
+          "provider": "NVIDIA"
+        },
+        {
+          "name": "Gemma 4 31B",
+          "provider": "Google"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Ling 3.0 Flash",
+            "B": "GPT-OSS 20B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model B includes the exact expected injection payload “1); DROP TABLE orders; --” demonstrating the vulnerability, while Model A uses a payload “1 OR 1=1” that does not match the expected exploit.",
+          "criteria": {
+            "correctness": "Model B correctly identifies byIds as the injectable query, shows a payload that matches the expected exploit, explains why findById and search are safe, and provides the minimal placeholder fix.",
+            "grounding": "Model B grounds its claims with citations to the [repo] and [db] artifacts and references the specific code snippets that cause the injection.",
+            "constraintHandling": "Both answers avoid the automatic disqualifier of claiming the LIKE query is injectable, but Model B more clearly respects the constraint by not suggesting any unsafe alternatives.",
+            "completeness": "Model B covers all required deliverables—d1, d2, d3, d4—with detailed payload, effect, safety explanations, and the exact minimal fix, whereas Model A’s payload is less precise."
+          }
+        },
+        {
+          "judge": {
+            "name": "Nemotron 3 Super 120B",
+            "provider": "NVIDIA",
+            "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+          },
+          "saw": {
+            "A": "Ling 3.0 Flash",
+            "B": "GPT-OSS 20B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model A's proposed payload ('1 OR 1=1') produces invalid SQL syntax for an IN clause, while Model B provides a valid injection payload that actually executes arbitrary SQL (e.g., DROP TABLE).",
+          "criteria": {
+            "correctness": "Both models correctly identify byIds as the vulnerable query and explain why findById and search are safe via parameter binding.",
+            "grounding": "Model B cites the specific lines from [repo] and [db] to show the concatenation and parameter binding, whereas Model A's payload lacks a valid SQL example.",
+            "constraintHandling": "Neither model incorrectly flags the LIKE query as injectable, satisfying the automatic disqualifier.",
+            "completeness": "Model B delivers all four required parts: injectable query, a working payload and effect, safety explanation for the other two queries, and a minimal fix with placeholder generation (or ANY)."
+          }
+        },
+        {
+          "judge": {
+            "name": "Gemma 4 31B",
+            "provider": "Google",
+            "slug": "google/gemma-4-31b-it:free"
+          },
+          "abstain": true,
+          "reason": "upstream rate-limited (backoff exhausted)"
+        }
+      ]
+    },
+    "match-aea6899099b56918980e": {
+      "matchId": "match-aea6899099b56918980e",
+      "category": "security",
+      "ranAt": "2026-07-25T21:30:09.088Z",
+      "task": {
+        "id": "security/jwt-alg-confusion",
+        "version": 1,
+        "cluster": "authz-boundary",
+        "difficulty": "hard",
+        "title": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+        "summary": "Three auth checks look similar; exactly one lets an attacker forge an admin session. Find it and prove the forgery.",
+        "publicHash": "be3072c420aa2e8e393ad69adf5fe1aa1ffcd2bdb7e68c6b068d3a8a27f4f154",
+        "privateHash": "3f8ad90da71c121f593cf2c1cc9e0cace662dee74c90a47eb350979407d49208"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "3-0",
+      "unanimous": true,
+      "reason": null,
+      "a": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free",
+        "response": "### 1. Vulnerability Identification\nThe exploitable endpoint is **`auth/refresh.js`** [refresh]. The vulnerability is **JWT Algorithm Confusion** (specifically, an HMAC/RSA confusion attack) [refresh].\n\n### 2. Proof of Exploitability (End-to-End)\nAn attacker can impersonate an admin by performing the following steps:\n\n1.  **Obtain the Public Key:** The attacker retrieves the RSA public key from the public endpoint `/.well-known/jwks.json` [env].\n2.  **Craft Forged Payload:** The attacker creates a JWT payload containing the target's identity and elevated privileges: `{\"sub\": \"admin-id\", \"role\": \"admin\"}`.\n3.  **Perform Algorithm Downgrade:** The attacker crafts a JWT header specifying `{\"alg\": \"HS256\", \"typ\": \"JWT\"}`. This instructs the library to treat the provided key as a symmetric HMAC secret rather than an asymmetric RSA key [refresh].\n4.  **Sign with Public Key:** The attacker signs the token using the **RSA Public Key** (obtained in step 1) as the HMAC secret.\n5.  **Submit to Refresh Endpoint:** The attacker sends a POST request to the refresh endpoint with the forged token in the `refreshToken` body field.\n6.  **Bypass & Minting:** Because `jwt.verify` in `auth/refresh.js` does not specify an `algorithms` option, it accepts the `HS256` header [refresh]. The library uses the `PUBLIC_KEY` as the HMAC secret, which matches the attacker's signature. The function then calls `mintAccessToken` using the forged `claims.role`, issuing a valid, high-privilege access token to the attacker [refresh].\n\n### 3. Analysis of Non-Exploitable Verifiers\n*   **`auth/verify.js` [verify-mw]:** This is **not exploitable** because the `jwt.verify` call explicitly pins the allowed algorithm to `['RS256']` via the options object. Even if an attacker provides an `HS256` token, the library will reject it because it does not match the allowed algorithm list [verify-mw].\n*   **`ws/auth.js` [ws-auth]:** This is **not exploitable** because it uses `jwt.decode()`, which performs no cryptographic signature verification [ws-auth]. While an attacker can manipulate the `socket.bucket` value, this value is only used for rate-limiting and does not grant administrative privileges; actual command execution is protected by the secure `verify()` middleware [ws-auth].\n\n### 4. Remediation\nPass the allowed algorithm in the options object to ensure the library does not trust the token header:\n\n```javascript\njwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, claims) => {... });\n```",
+        "tokens": 633,
+        "reasoningTokens": 0,
+        "ms": 19525,
+        "genId": "gen-1785014696-JgoPpjsHwJh1fHj6dYrI",
+        "eloBefore": 1000,
+        "eloAfter": 984
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "response": "**1. Exploitable verifier & vulnerability class**  \n`auth/refresh.js` — **Algorithm Confusion (alg-confusion)**. The `jwt.verify()` call omits the `algorithms` option, so the library trusts the token’s `alg` header. Because `PUBLIC_KEY` is public knowledge ([env]: “distributed to every service … published at /.well-known/jwks.json”), an attacker can forge an HS256 token signed with that public key as the HMAC secret.\n\n**2. Concrete forgery steps**  \n| Step | Action | Code that enables it |\n|------|--------|----------------------|\n| 1 | Fetch `PUBLIC_KEY` from `/.well-known/jwks.json` or the client bundle. | [env] confirms the key is public. |\n| 2 | Craft a JWT header `{ \"alg\": \"HS256\", \"typ\": \"JWT\" }` and payload `{ \"sub\": \"attacker\", \"role\": \"admin\", \"exp\": <far-future> }`. | [refresh] passes no `algorithms` option, so the library reads `alg` from the header. |\n| 3 | Sign the token using `PUBLIC_KEY` as the HS256 secret (e.g., `crypto.createHmac('sha256', PUBLIC_KEY).update(unsigned).digest('base64url')`). | [refresh] calls `jwt.verify(token, PUBLIC_KEY, …)` — when the header says HS256, the same `PUBLIC_KEY` buffer is used as the HMAC key. |\n| 4 | POST the forged token as `refreshToken` to the refresh endpoint. | [refresh] line `const token = req.body.refreshToken \\|\\| '';` accepts it. |\n| 5 | `jwt.verify` succeeds, returns attacker-controlled `claims` (including `role: \"admin\"`). | [refresh] callback receives `claims` and passes them to `mintAccessToken`. |\n| 6 | Service returns a fresh access token minted with `role: \"admin\"`. | [refresh] `const access = mintAccessToken({ sub: claims.sub, role: claims.role });` |\n\n**3. Why the other two verifiers are safe**  \n- **[verify-mw]**: Explicitly pins `algorithms: ['RS256']`; any token with `alg: HS256` is rejected before signature verification.  \n- **[ws-auth]**: Uses only `jwt.decode()` — **no signature verification occurs**. The decoded payload merely selects a rate-limit bucket; real authorization is re-checked by `verify()` on every command.\n\n**4. Minimal one-line fix**  \nIn `auth/refresh.js`, change the verify call to:  \n```js\njwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, claims) => { … });\n```",
+        "tokens": 1427,
+        "reasoningTokens": 793,
+        "ms": 11353,
+        "genId": "gen-1785014696-HAbQdd0GIYpxmprry4nk",
+        "eloBefore": 1000,
+        "eloAfter": 1016
+      },
+      "judges": [
+        {
+          "name": "GPT-OSS 20B",
+          "provider": "OpenAI"
+        },
+        {
+          "name": "Ling 3.0 Flash",
+          "provider": "InclusionAI"
+        },
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "GPT-OSS 20B",
+            "provider": "OpenAI",
+            "slug": "openai/gpt-oss-20b:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Ultra 550B",
+            "B": "Gemma 4 26B"
+          },
+          "winner": "b",
+          "confidence": 70,
+          "decisiveDifference": "Model A presents the forgery steps in a detailed table with explicit code references, whereas Model B uses a less structured bullet list, making Model A slightly more thorough in grounding each claim.",
+          "criteria": {
+            "correctness": "Both answers correctly identify auth/refresh.js as the vulnerable endpoint and the algorithm‑confusion vulnerability.",
+            "grounding": "Both cite the relevant artifact IDs ([refresh], [env], [verify-mw], [ws-auth]) for each claim.",
+            "constraintHandling": "Both respect the requirement to cite artifacts and avoid flagging safe verifiers as vulnerable.",
+            "completeness": "Both answers fully address all four requested parts of the task."
+          }
+        },
+        {
+          "judge": {
+            "name": "Ling 3.0 Flash",
+            "provider": "InclusionAI",
+            "slug": "inclusionai/ling-3.0-flash:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Ultra 550B",
+            "B": "Gemma 4 26B"
+          },
+          "winner": "b",
+          "confidence": 95,
+          "decisiveDifference": "Model A provides more explicit code-level detail in the forgery steps (including the actual HMAC signing implementation) and anchors every claim with artifact IDs, making the attack proof more concrete and verifiable.",
+          "criteria": {
+            "correctness": "Both models correctly identify refresh.js as the exploitable verifier and algorithm confusion as the vulnerability class.",
+            "grounding": "Model A cites [env], [refresh], [verify-mw], and [ws-auth] for every claim; Model B also cites all artifacts but with slightly less granular step-by-step code references.",
+            "constraintHandling": "Both correctly explain why verify-mw (pins algorithms) and ws-auth (decode only, no privilege) are not exploitable; neither flags a safe verifier as vulnerable.",
+            "completeness": "Both deliver all four required deliverables (vuln identification, forgery steps, safety analysis, fix); Model A's table format and explicit HMAC code make the attack end-to-end proof more complete."
+          }
+        },
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Gemma 4 26B",
+            "B": "Nemotron 3 Ultra 550B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model A omits artifact IDs for several claims (e.g., payload crafting and signing steps), while Model B cites artifact IDs for every step.",
+          "criteria": {
+            "correctness": "Both correctly identify refresh.js as exploitable and describe the algorithm confusion vulnerability.",
+            "grounding": "Model B provides artifact citations for each claim, satisfying the requirement to reference artifacts.",
+            "constraintHandling": "Both handle constraints correctly, but Model B’s exhaustive citations meet the hidden reference’s citation requirement.",
+            "completeness": "Model B fully addresses all four deliverables with proper artifact references, whereas Model A misses citations for some steps."
+          }
+        }
+      ]
+    },
+    "match-6e624a6f55c33f0d5f8c": {
+      "matchId": "match-6e624a6f55c33f0d5f8c",
+      "category": "security",
+      "ranAt": "2026-07-27T18:53:42.511Z",
+      "task": {
+        "id": "security/path-traversal-download",
+        "version": 1,
+        "cluster": "taint-flow",
+        "difficulty": "standard",
+        "title": "A File Download Endpoint With One Un-Neutralized User Path",
+        "summary": "Two handlers take a user-supplied filename; one lets an attacker read /etc/passwd. Trace the taint.",
+        "publicHash": "766d6981398c16e664c9a836c4fb66dfc47f5ddcea21a63b5349fc79fc6e679b",
+        "privateHash": "2c13ceb2f50c10be90496c7e657bae1c424b539bb9984f792e8ebd85c0fc3b28"
+      },
+      "outcome": "judged",
+      "winner": "a",
+      "panel": "2-0",
+      "unanimous": false,
+      "reason": null,
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+        "response": "**Vulnerable handler:** `exportFile` in **handlers/export.js** [export]  \n\n**Exploit input:**  \n```\nGET /export?file=../../etc/passwd HTTP/1.1\n```\n(The query‑string value `file` is taken verbatim and concatenated to `ROOT`.)\n\n**File disclosed:**  \nThe server resolves `/srv/exports/../../etc/passwd` → `/etc/passwd` (or any file outside `/srv/exports/` by using an appropriate number of `..` segments).\n\n**Why the other handler is safe:**  \nThe avatar handler in **handlers/avatar.js** [avatar] does:\n\n```js\nconst full = path.resolve(ROOT, name);   // resolves any \"..\" relative to ROOT\nif (!full.startsWith(ROOT + path.sep))   // ensures the resolved path is still under ROOT\n  return res.status(403).end();\n```\n`path.resolve` collapses `../` segments before the check, so a traversal attempt such as `name = \"../../etc/passwd\"` yields `full = \"/srv/etc/passwd\"`. Because this does **not** start with `/srv/avatars/`, the request is rejected with 403. The mount point in **routes.js** [routes] (`router.get('/avatars/:name', avatar);`) passes only a single path segment, but even if multiple segments were supplied the `resolve` + `startsWith` guard would block escape.\n\n**Minimal fix:**  \nReplace the unsafe concatenation with the same validation pattern used by the avatar handler:\n\n```js\n// handlers/export.js  (fixed)\nconst path = require('path');\nconst fs   = require('fs');\nconst ROOT = '/srv/exports/';\n\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name);   // resolve \"..\" etc.\n  if (!full.startsWith(ROOT + path.sep))   // stay inside ROOT\n    return res.status(403).end();\n\n  fs.createReadStream(full).pipe(res);\n}\n```\n\n(Alternatively, use `path.join(ROOT, name)` and reject any `name` containing path separators, but the `resolve` + `startsWith` check is the minimal change that mirrors the proven‑safe avatar code.)  \n\n**Citations:**  \n- Vulnerable code: [export]  \n- Safe avatar code: [avatar]  \n- Route definitions: [routes]",
+        "tokens": 1056,
+        "reasoningTokens": 489,
+        "ms": 13270,
+        "genId": "gen-1785178104-DMpJOhFEbmF5gSqwqgfX",
+        "eloBefore": 1000,
+        "eloAfter": 1016
+      },
+      "b": {
+        "name": "Laguna M.1",
+        "provider": "Poolside",
+        "slug": "poolside/laguna-m.1:free",
+        "response": "## Vulnerable Handler: [export]\n\nThe **export** handler in `handlers/export.js` is vulnerable to path traversal.\n\n### Exploit Input\n```\nGET /export?file=../../../etc/passwd\n```\n\n### File Disclosed\n`/etc/passwd` (or any file readable by the service process)\n\n### Why It's Vulnerable\nThe handler directly concatenates user input to the root path without sanitization [export]. The query string parameter `file` accepts arbitrary characters including `/` and `..` sequences. An attacker can supply `../../../etc/passwd` to traverse out of `/srv/exports/` and read any file on the system.\n\n## Safe Handler: [avatar]\n\nThe **avatar** handler in `handlers/avatar.js` is safe because:\n\n1. **Path resolution**: It uses `path.resolve(ROOT, name)` which normalizes the path and resolves any `..` segments [avatar]\n2. **Boundary check**: It validates that the resolved path starts with `ROOT + path.sep`, ensuring the final path remains within the intended directory [avatar]\n3. **Route constraint**: The `:name` parameter in Express only matches a single path segment, preventing `/` characters in the input [routes]\n\n## Minimal Fix for [export]\n\n```javascript\nconst path = require('path');\nconst fs = require('fs');\nconst ROOT = '/srv/exports/';\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name);\n  if (!full.startsWith(ROOT)) return res.status(403).end();\n  fs.readFile(full, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```\n\nThe fix adds the same path resolution and boundary check pattern used in the avatar handler [avatar]. Note: `ROOT` should not have a trailing slash for the `startsWith` check to work correctly, or use `path.join(ROOT, name)` and check against `ROOT + path.sep`.",
+        "tokens": 737,
+        "reasoningTokens": 288,
+        "ms": 105978,
+        "genId": "gen-1785178104-qgD6JWmQMu2cZ9oVy2hy",
+        "eloBefore": 1000,
+        "eloAfter": 984
+      },
+      "judges": [
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        },
+        {
+          "name": "Gemma 4 31B",
+          "provider": "Google"
+        },
+        {
+          "name": "Ling 3.0 Flash",
+          "provider": "InclusionAI"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Super 120B",
+            "B": "Laguna M.1"
+          },
+          "winner": "a",
+          "confidence": 95,
+          "decisiveDifference": "Model A uses the exact exploit input '../../etc/passwd' and the correct resolve‑then‑contain check (ROOT + path.sep), while Model B uses a different number of '..' segments and omits the path separator in the startsWith check.",
+          "criteria": {
+            "correctness": "Model A correctly identifies export.js as the vulnerable handler, provides the exact exploit input '../../etc/passwd' and disclosed file /etc/passwd, and explains the safe avatar.js using path.resolve and startsWith(ROOT + path.sep).",
+            "grounding": "Model A grounds its claims by directly referencing the code snippets in handlers/export.js, handlers/avatar.js, and routes.js, and cites the artifact IDs.",
+            "constraintHandling": "Model A respects all constraints: it does not claim avatar.js is exploitable, it uses the same pattern for the fix, and it avoids verbosity.",
+            "completeness": "Model A covers all four deliverables (d1‑d4) with concise explanations and a minimal fix."
+          }
+        },
+        {
+          "judge": {
+            "name": "Gemma 4 31B",
+            "provider": "Google",
+            "slug": "google/gemma-4-31b-it:free"
+          },
+          "abstain": true,
+          "reason": "upstream rate-limited (backoff exhausted)"
+        },
+        {
+          "judge": {
+            "name": "Ling 3.0 Flash",
+            "provider": "InclusionAI",
+            "slug": "inclusionai/ling-3.0-flash:free"
+          },
+          "saw": {
+            "A": "Laguna M.1",
+            "B": "Nemotron 3 Super 120B"
+          },
+          "winner": "a",
+          "confidence": 95,
+          "decisiveDifference": "Model A's fix uses full.startsWith(ROOT) without path.sep, which is vulnerable to prefix-matching bypass (e.g., a directory named /srv/exports_evil/ would pass the check), while Model B correctly uses full.startsWith(ROOT + path.sep) matching the reference pattern.",
+          "criteria": {
+            "correctness": "Model B correctly identifies export.js as vulnerable, provides the canonical exploit ../../etc/passwd, and gives a correct fix; Model A's fix has a prefix-matching bug.",
+            "grounding": "Model B cites [export], [avatar], and [routes] artifacts and aligns with the reference resolution; Model A's startsWith(ROOT) without path.sep contradicts the reference's specified fix pattern.",
+            "constraintHandling": "Model B handles the containment check constraint correctly with ROOT + path.sep; Model A omits path.sep, failing the boundary-check constraint.",
+            "completeness": "Both answers cover all four deliverables, but Model B's fix is correct while Model A's contains a subtle bypass vulnerability."
+          }
+        }
+      ]
+    },
+    "match-0f5599397f079d2c7e16": {
+      "matchId": "match-0f5599397f079d2c7e16",
+      "category": "security",
+      "ranAt": "2026-07-27T19:01:40.713Z",
+      "task": {
+        "id": "security/path-traversal-download",
+        "version": 1,
+        "cluster": "taint-flow",
+        "difficulty": "standard",
+        "title": "A File Download Endpoint With One Un-Neutralized User Path",
+        "summary": "Two handlers take a user-supplied filename; one lets an attacker read /etc/passwd. Trace the taint.",
+        "publicHash": "766d6981398c16e664c9a836c4fb66dfc47f5ddcea21a63b5349fc79fc6e679b",
+        "privateHash": "2c13ceb2f50c10be90496c7e657bae1c424b539bb9984f792e8ebd85c0fc3b28"
+      },
+      "outcome": "judged",
+      "winner": "a",
+      "panel": "2-1",
+      "unanimous": false,
+      "reason": null,
+      "a": {
+        "name": "Laguna M.1",
+        "provider": "Poolside",
+        "slug": "poolside/laguna-m.1:free",
+        "response": "# Path Traversal Vulnerability Analysis\n\n## Vulnerable Handler: `[export]`\n\nThe `[export]` handler in `handlers/export.js` is vulnerable to path traversal attacks.\n\n**Exploit Input:**\n```\nGET /export?file=../../../etc/passwd\n```\n\n**File Disclosed:** `/etc/passwd` (or any file readable by the service)\n\n**Why it works:** The handler directly concatenates `ROOT + name` without any path sanitization, allowing `../` sequences to escape the intended directory.\n\n## Safe Handler: `[avatar]`\n\nThe `[avatar]` handler in `handlers/avatar.js` is **not vulnerable** because:\n\n1. **Path normalization:** `path.resolve(ROOT, name)` resolves all `..` and `.` segments to an absolute path [avatar]\n2. **Boundary check:** The `startsWith(ROOT + path.sep)` check ensures the final resolved path remains within `/srv/avatars/` [avatar]\n3. **Route constraint:** The `:name` parameter in Express only matches a single path segment (no `/` characters) [routes]\n\nEven if an attacker attempts `../etc/passwd` as the name, `path.resolve()` would resolve it to `/etc/passwd`, which fails the `startsWith('/srv/avatars/')` check and returns 403.\n\n## Minimal Fix for `[export]`\n\n```javascript\nconst path = require('path');\nconst fs = require('fs');\nconst ROOT = '/srv/exports/';\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name);\n  if (!full.startsWith(ROOT)) return res.status(403).end();\n  fs.readFile(full, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```\n\n**Key changes:**\n- Added `path.resolve()` to normalize the path [avatar]\n- Added `startsWith(ROOT)` boundary check to prevent directory escape [avatar]\n- Note: `ROOT` already ends with `/` so `path.sep` is not needed in the check",
+        "tokens": 831,
+        "reasoningTokens": 367,
+        "ms": 136219,
+        "genId": "gen-1785178595-HmvFGttVZM55YONI3b0P",
+        "eloBefore": 984,
+        "eloAfter": 1001.5
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free",
+        "response": "**Vulnerable handler**\n\n| Handler | File | Vulnerability |\n|---------|------|---------------|\n| **export** | `handlers/export.js` | Direct string concatenation of the user‑supplied `file` query value with the root directory (`ROOT + name`). No path normalization or containment check is performed, so an attacker can supply `../` segments that escape `/srv/exports/`. |\n\n**Exploit input**\n\n```\nGET /export?file=../../../../etc/passwd HTTP/1.1\nHost: example.com\n```\n\n*The request is sent to the `/export` route, which maps to `exportFile`.*\n\n**File disclosed**\n\nThe server will read and return the contents of `/etc/passwd` (or any other file reachable by traversing up from `/srv/exports/`). The response will contain the plaintext password file.\n\n**Why the other handler is safe**\n\n`avatar` (in `handlers/avatar.js`) performs the following steps:\n\n1. `const name = req.params.name;` – the value comes from the URL segment `/avatars/:name`.\n2. `const full = path.resolve(ROOT, name);` – `path.resolve` normalises the path, collapsing any `..` or `.` segments.\n3. `if (!full.startsWith(ROOT + path.sep)) return res.status(403).end();` – the resolved path is verified to still be inside the intended root directory (`/srv/avatars/`).  \n   If the check fails, the request is rejected with a 403 status.\n\nBecause the resolved path is always inside `/srv/avatars/`, an attacker cannot escape that directory, even if they supply a malicious `name`. Thus the avatar endpoint is not vulnerable to path traversal.\n\n**Minimal fix for the vulnerable handler**\n\nReplace the unsafe concatenation with a resolved‑path check similar to the avatar handler:\n\n```js\n// handlers/export.js\nconst fs   = require('fs');\nconst path = require('path');\nconst ROOT = '/srv/exports/';\n\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name);\n\n  // Ensure the resolved path is still inside ROOT\n  if (!full.startsWith(ROOT)) {\n    return res.status(403).end();\n  }\n\n  fs.readFile(full, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```\n\n*This change normalises the requested path, verifies containment, and prevents traversal.*",
+        "tokens": 707,
+        "reasoningTokens": 159,
+        "ms": 43371,
+        "genId": "gen-1785178595-sdtgDy1kpsTkcpRQVNim",
+        "eloBefore": 1016,
+        "eloAfter": 998.5
+      },
+      "judges": [
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        },
+        {
+          "name": "Ling 3.0 Flash",
+          "provider": "InclusionAI"
+        },
+        {
+          "name": "Nemotron 3 Super 120B",
+          "provider": "NVIDIA"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "GPT-OSS 20B",
+            "B": "Laguna M.1"
+          },
+          "winner": "a",
+          "confidence": 90,
+          "decisiveDifference": "Model B cites artifact IDs and mentions the route constraint, while Model A provides none.",
+          "criteria": {
+            "correctness": "Both answers correctly identify export.js as vulnerable and describe why avatar.js is safe, but Model B’s explanation is more precise.",
+            "grounding": "Model B grounds its claims with explicit artifact references ([avatar], [routes]) and code snippets, whereas Model A offers no citations.",
+            "constraintHandling": "Model B explicitly notes the Express route constraint that :name matches a single path segment, reinforcing why avatar is safe, while Model A omits this detail.",
+            "completeness": "Model B’s answer includes artifact citations, a clear route‑constraint note, and a fix with explanatory comments, making it more complete than Model A’s largely uncited description."
+          }
+        },
+        {
+          "judge": {
+            "name": "Ling 3.0 Flash",
+            "provider": "InclusionAI",
+            "slug": "inclusionai/ling-3.0-flash:free"
+          },
+          "saw": {
+            "A": "GPT-OSS 20B",
+            "B": "Laguna M.1"
+          },
+          "winner": "b",
+          "confidence": 85,
+          "decisiveDifference": "Model A provides a more thorough, step-by-step explanation of why avatar.js is safe and more clearly identifies the vulnerability mechanism (direct string concatenation without normalization), making its analysis more complete and precise.",
+          "criteria": {
+            "correctness": "Both models correctly identify export.js as the vulnerable handler and avatar.js as safe, with valid exploit inputs and disclosed files.",
+            "grounding": "Model A's explanation is more detailed and better structured, clearly tracing the vulnerability from the unsanitized req.query.file through to the file disclosure, while Model B is more concise but equally accurate.",
+            "constraintHandling": "Both models correctly apply the resolve-then-contain fix pattern; neither claims avatar.js is exploitable (avoiding the disqualifier).",
+            "completeness": "Model A covers all four deliverables (d1–d4) with more explanatory depth, while Model B is slightly more concise but still addresses all required points."
+          }
+        },
+        {
+          "judge": {
+            "name": "Nemotron 3 Super 120B",
+            "provider": "NVIDIA",
+            "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+          },
+          "saw": {
+            "A": "GPT-OSS 20B",
+            "B": "Laguna M.1"
+          },
+          "winner": "a",
+          "confidence": 85,
+          "decisiveDifference": "Model B explicitly cites the artifact ids ([export], [avatar], [routes]) as required, while Model A does not.",
+          "criteria": {
+            "correctness": "Both models correctly identify export.js as the vulnerable handler and explain why avatar.js is safe.",
+            "grounding": "Model B grounds its claims by referencing the specific artifact files ([export], [avatar], [routes]), satisfying the citation requirement; Model A lacks these citations.",
+            "constraintHandling": "Both models correctly avoid claiming that avatar.js is exploitable, adhering to the disqualifier constraint.",
+            "completeness": "Each model provides the vulnerable handler, exploit input and disclosed file, reasoning for safety of the other handler, and a minimal fix; Model B adds a note about the route constraint, enhancing completeness."
+          }
+        }
+      ]
+    },
+    "match-bd3d34d06eff8dd016cc": {
+      "matchId": "match-bd3d34d06eff8dd016cc",
+      "category": "security",
+      "ranAt": "2026-07-27T19:30:02.649Z",
+      "task": {
+        "id": "security/jwt-alg-confusion",
+        "version": 1,
+        "cluster": "authz-boundary",
+        "difficulty": "hard",
+        "title": "A Token Verifier That Trusts the Token to Name Its Own Algorithm",
+        "summary": "Three auth checks look similar; exactly one lets an attacker forge an admin session. Find it and prove the forgery.",
+        "publicHash": "be3072c420aa2e8e393ad69adf5fe1aa1ffcd2bdb7e68c6b068d3a8a27f4f154",
+        "privateHash": "3f8ad90da71c121f593cf2c1cc9e0cace662dee74c90a47eb350979407d49208"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "reason": "no-majority",
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+        "response": "**1. Exploitable verifier & vulnerability class**  \n- **Endpoint:** the token‑refresh handler in **auth/refresh.js** (`refresh` function) [refresh].  \n- **Vulnerability class:** *JWT algorithm‑confusion (alg‑confusion)* – the verifier does not constrain the `alg` header, allowing an attacker to sign a token with **HS256** using the RS256 public key as the HMAC secret [refresh].\n\n**2. Concrete forgery steps to‑end) an unauthenticated attacker follows**\n\n| Step | Action | Code that makes it work |\n|------|--------|--------------------------|\n| a. | Obtain the RS256 public key (`PUBLIC_KEY`). It is public – shipped in the client bundle and published at `/.well-known/jwks.json` [env]. | No code needed; the key is known. |\n| b. | Build a JWT payload with the desired privileged claims, e.g. `{ \"sub\": \"victim‑uid\", \"role\": \"admin\", \"iat\": …, \"exp\": … }`. | Payload is arbitrary; the verifier will return it unchanged if the signature checks. |\n| c. | Set the JWT header to `{\"alg\":\"HS256\",\"typ\":\"JWT\"}`. | The header tells the library which algorithm to use for verification. |\n| d. | Sign the token with **HMAC‑SHA256** using the *public key* as the secret: `signature = HS256(PUBLIC_KEY, base64UrlEncode(header) + \".\" + base64UrlEncode(payload))`. | Because `jwt.verify(token, PUBLIC_KEY)` is called **without** an `algorithms` option, the library accepts whatever `alg` the header claims [refresh]. When `alg` is `\"HS256\"` it treats `PUBLIC_KEY` as the HMAC secret [refresh]. |\n| e. | Send the forged token to the refresh endpoint: `POST /refresh` with body `{ \"refreshToken\": \"<forged token>\" }`. | The handler executes `jwt.verify(token, PUBLIC_KEY, (err, claims) => { … })` [refresh]; the verification succeeds, `claims` contains the attacker‑chosen payload (including `\"role\":\"admin\"`). |\n| f. | The handler then mints a new access token: `const access = mintAccessToken({ sub: claims.sub, role: claims.role });` [refresh]. | Since `claims.role` is `\"admin\"`, the newly minted access token grants admin privileges. |\n| g. | Use the returned access token in any protected request (e.g., with the `verify-mw` middleware) to act as an admin. | The middleware validates the access token with RS256, but the token was legitimately signed by the auth service, so it passes. |\n\nThus the attacker can impersonate an admin without ever possessing a valid refresh token from the legitimate auth service.\n\n**3. Why the other two verifiers are not exploitable in the same way**\n\n- **verify‑mw (auth/verify.js)** – explicitly restricts accepted algorithms: `jwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] })` [verify‑mw]. The `algorithms` option forces RS256 only; an HS256‑signed token will be rejected, preventing alg‑confusion.  \n- **ws‑auth (ws/auth.js)** – uses only calls `jwt.decode(token)` which **does not verify a signature** at all [ws‑auth]. The decoded payload is used solely to pick a rate‑limit bucket (`socket.bucket`). Privilege‑granting decisions are re‑checked on every actual command by the `verify-mw` middleware, which (as shown above) enforces RS256. Therefore an attacker cannot gain privileged access via the websocket handshake alone.\n\n**4. Minimal one‑line fix**\n\nAdd the same algorithm pinning used in `verify-mw` to the refresh verifier:\n\n```javascript\n// before\njwt.verify(token, PUBLIC_KEY, (err, claims) => { ... });\n\n// after  (one‑line change)\njwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, claims) => { ... });\n```\n\n[refresh] – the only line that needs modification. This forces the library to accept **only RS256**, eliminating the HS256‑with‑public‑key confusion and closing the auth‑bypass vector.",
+        "tokens": 1646,
+        "reasoningTokens": 702,
+        "ms": 30575,
+        "genId": "gen-1785178902-Nv441028kRVpb0gUpsSs"
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "response": "**1. Exploitable verifier & vulnerability class**  \n`[refresh]` — **algorithm confusion (RS256→HS256 downgrade)**.\n\n**2. Concrete forgery steps**  \n\n| Step | Attacker action | Code that enables it |\n|------|-----------------|----------------------|\n| 1 | Fetch the public key from `/.well-known/jwks.json` (public per `[env]`). | `PUBLIC_KEY` is distributed to clients and published. |\n| 2 | Craft a JWT header `{\"alg\":\"HS256\",\"typ\":\"JWT\"}` and payload `{\"sub\":\"attacker\",\"role\":\"admin\"}`. | `[refresh]` calls `jwt.verify(token, PUBLIC_KEY)` **without** an `algorithms` option, so the library trusts the token’s `alg` header. |\n| 3 | Sign the token using the **public key as the HMAC secret** (HS256 is symmetric). | Because no `algorithms: ['RS256']` is passed, `jsonwebtoken` treats `PUBLIC_KEY` as a shared secret when it sees `alg: HS256`. |\n| 4 | POST the forged token to the refresh endpoint as `refreshToken`. | `[refresh]` verifies it successfully, then mints a new access token with `role: \"admin\"`. |\n\n**3. Why the other two are NOT exploitable**  \n\n- `[verify-mw]`: Explicitly pins `algorithms: ['RS256']` — the library **rejects** any token whose header claims `HS256` (or anything else).  \n- `[ws-auth]`: Uses `jwt.decode()` which **never verifies a signature**; the decoded payload only selects a rate-limit bucket (`socket.bucket`). Privilege is re-checked by `[verify-mw]` on every real command.\n\n**4. Minimal one-line fix**  \n\nIn `[refresh]`, change the verify call to:  \n```js\njwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, claims) => { … });\n```",
+        "tokens": 1134,
+        "reasoningTokens": 669,
+        "ms": 25472,
+        "genId": "gen-1785178903-5R99Wonx4LO6kilwCpdq"
+      },
+      "judges": [
+        {
+          "name": "Gemma 4 31B",
+          "provider": "Google"
+        },
+        {
+          "name": "GPT-OSS 20B",
+          "provider": "OpenAI"
+        },
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "Gemma 4 31B",
+            "provider": "Google",
+            "slug": "google/gemma-4-31b-it:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Super 120B",
+            "B": "Nemotron 3 Ultra 550B"
+          },
+          "winner": "a",
+          "confidence": 95,
+          "decisiveDifference": "Model A provides a more comprehensive end-to-end proof of the attack, specifically explaining how the forged refresh token leads to a legitimate admin access token that then bypasses the secure verify-mw middleware.",
+          "criteria": {
+            "correctness": "Both models correctly identify the algorithm confusion vulnerability in refresh.js and the correct fix.",
+            "grounding": "Both models cite the provided artifacts correctly to support their claims.",
+            "constraintHandling": "Both models followed all instructions, including the one-line fix and the requirement to explain why other verifiers are safe.",
+            "completeness": "Model A is more complete in its explanation of the attack chain (Step 2f and 2g), whereas Model B summarizes the final steps more briefly."
+          }
+        },
+        {
+          "judge": {
+            "name": "GPT-OSS 20B",
+            "provider": "OpenAI",
+            "slug": "openai/gpt-oss-20b:free"
+          },
+          "abstain": true,
+          "reason": "The operation was aborted due to timeout"
+        },
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "abstain": true,
+          "reason": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    "match-e810b96e81497b05082b": {
+      "matchId": "match-e810b96e81497b05082b",
+      "category": "security",
+      "ranAt": "2026-07-27T19:38:56.058Z",
+      "task": {
+        "id": "security/path-traversal-download",
+        "version": 1,
+        "cluster": "taint-flow",
+        "difficulty": "standard",
+        "title": "A File Download Endpoint With One Un-Neutralized User Path",
+        "summary": "Two handlers take a user-supplied filename; one lets an attacker read /etc/passwd. Trace the taint.",
+        "publicHash": "766d6981398c16e664c9a836c4fb66dfc47f5ddcea21a63b5349fc79fc6e679b",
+        "privateHash": "2c13ceb2f50c10be90496c7e657bae1c424b539bb9984f792e8ebd85c0fc3b28"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "reason": "no-majority",
+      "a": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free",
+        "response": "The vulnerable handler is [export] (handlers/export.js).\n\n**Exploit Input:** `?file=../../etc/passwd`\n**Disclosed File:** `/etc/passwd`\n\n**Proof of Exploitability:** Per [routes], the `exportFile` handler receives the user-controlled string via the `file` query parameter. In [export], the code concatenates `ROOT` (`/srv/exports/`) directly with the unsanitized `name` (`../../etc/passwd`), producing the path `/srv/exports/../../etc/passwd`. The operating system resolves this canonical path to `/etc/passwd`, and `fs.readFile` discloses the file contents. Because no validation or path normalization is performed, arbitrary file traversal is trivial.\n\n**Why [avatar] is Safe:** Per [routes], the `avatar` handler receives `name` as a single path segment. In [avatar], the code uses `path.resolve(ROOT, name)` to canonicalize the path, which resolves any `..` segments into their actual parent directories. It then explicitly validates that the resulting absolute path remains strictly inside the intended `ROOT` directory by checking `full.startsWith(ROOT + path.sep)`. If the resolved path escapes `/srv/avatars/` (e.g., resolves to `/etc/passwd`), the check fails and returns a 403, neutralizing the traversal.\n\n**Minimal Fix for [export]:**\nAdd path resolution and root-boundary validation to [export], mirroring the safe logic in [avatar]:\n\n```javascript\nconst path = require('path');\n// ...\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name);\n  if (!full.startsWith(ROOT)) return res.status(403).end();\n  fs.readFile(full, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```",
+        "tokens": 2550,
+        "reasoningTokens": 1917,
+        "ms": 10462,
+        "genId": "gen-1785180606-SPEM7cTmMfPAxm72RuNW"
+      },
+      "b": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free",
+        "response": "### Vulnerability Analysis\n\nThe vulnerable handler is **`exportFile`** in `handlers/export.js` [export].\n\n#### Exploitability Proof\nThe `exportFile` handler performs direct string concatenation between a static directory (`ROOT`) and user-controlled input (`req.query.file`) without any path normalization or validation [export]. Because the input is sourced from a query parameter, an attacker can inject directory traversal sequences (`../`) to escape the intended directory.\n\n**Exploit Input:**\n`GET /export?file=../../etc/passwd`\n\n**Disclosed File:**\n`/etc/passwd`\n\n**Execution Trace:**\n1. `ROOT` is `/srv/exports/` [export].\n2. `name` is `../../etc/passwd` [export].\n3. `ROOT + name` evaluates to `/srv/exports/../../etc/passwd`.\n4. The filesystem resolves this path to `/etc/passwd`, bypassing the intended directory restriction [export].\n\n---\n\n#### Security Analysis of `avatar`\nThe `avatar` handler is **safe** against path traversal. \n\nWhile it uses `path.resolve(ROOT, name)`, which does resolve `../` segments, it implements a **Path Validation Pattern** [avatar]. \n1. It resolves the absolute path: `const full = path.resolve(ROOT, name)` [avatar].\n2. It performs a prefix check: `if (!full.startsWith(ROOT + path.sep)) return res.status(403).end()` [avatar].\n\nIf an attacker provides `../` segments in the `:name` parameter, `path.resolve` will calculate the resulting path. If that path falls outside of `/srv/avatars/`, the `startsWith` check will fail, and the request will be rejected with a `403 Forbidden` [avatar].\n\n*Note: The `avatar` handler is further constrained by the `[routes]` configuration, where `:name` is defined as a single path segment, preventing the use of `/` in many routing engines, though the logic in `avatar.js` provides defense-in-depth regardless [routes].*\n\n---\n\n#### Minimal Fix\nTo secure the `exportFile` handler, use `path.resolve` and validate that the resulting path remains within the `ROOT` directory.\n\n```javascript\nconst path = require('path'); // Added\nconst fs = require('fs');\nconst ROOT = '/srv/exports/';\n\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  const full = path.resolve(ROOT, name); // Resolve the path\n\n  // Validate the resolved path is within ROOT\n  if (!full.startsWith(ROOT)) return res.status(403).end();\n\n  fs.readFile(full, (err, buf) => { // Use the validated 'full' path\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```",
+        "tokens": 662,
+        "reasoningTokens": 0,
+        "ms": 30401,
+        "genId": "gen-1785180607-4m1t7N4M4QL1PrBKEd0A"
+      },
+      "judges": [
+        {
+          "name": "GPT-OSS 20B",
+          "provider": "OpenAI"
+        },
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        },
+        {
+          "name": "Nemotron 3 Super 120B",
+          "provider": "NVIDIA"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "GPT-OSS 20B",
+            "provider": "OpenAI",
+            "slug": "openai/gpt-oss-20b:free"
+          },
+          "abstain": true,
+          "reason": "malformed-verdict"
+        },
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Gemma 4 26B",
+            "B": "Ling 3.0 Flash"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model A includes the full request line for the exploit input (GET /export?file=../../etc/passwd) and cites route constraints, while Model B only lists the query string, missing the complete exploit input.",
+          "criteria": {
+            "correctness": "Both models correctly identify export.js as vulnerable, the exploit input, disclosed file, why avatar.js is safe, and propose a resolve‑then‑contain fix.",
+            "grounding": "Model A grounds each claim with artifact references ([export], [avatar], [routes]) and provides an execution trace, whereas Model B also references artifacts but is less explicit.",
+            "constraintHandling": "Model A explicitly notes the single‑segment route constraint for avatar, reinforcing defense‑in‑depth, while Model B mentions it briefly.",
+            "completeness": "Model A fully satisfies all deliverables with the complete request line and detailed route note, whereas Model B omits the full request line, making its exploit input incomplete."
+          }
+        },
+        {
+          "judge": {
+            "name": "Nemotron 3 Super 120B",
+            "provider": "NVIDIA",
+            "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+          },
+          "abstain": true,
+          "reason": "malformed-verdict"
+        }
+      ]
+    },
+    "match-a1cb25af44e87cdf6185": {
+      "matchId": "match-a1cb25af44e87cdf6185",
+      "category": "security",
+      "ranAt": "2026-07-27T19:50:41.731Z",
+      "task": {
+        "id": "security/sql-in-clause",
+        "version": 1,
+        "cluster": "vuln-discovery",
+        "difficulty": "standard",
+        "title": "Parameterized Everywhere Except the One Dynamic IN Clause",
+        "summary": "A repository parameterizes its queries — except one that builds an IN (...) list by hand. Find the injection.",
+        "publicHash": "6d8112c9a06ea9d50413b393cc99db7c15925013116a3be135e70b03ce94a9e9",
+        "privateHash": "243d6f6f1ec85cf8dc755ee213842ab9fd1a450646cf7a820468a370353fe532"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "reason": "no-majority",
+      "a": {
+        "name": "Nemotron 3 Super 120B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-super-120b-a12b:free",
+        "response": "**Vulnerable query** – `byIds` in **[repo]**  \n```javascript\nfunction byIds(ids) {\n  const list = ids.join(',');                     // ← raw user data concatenated\n  return db.query('SELECT * FROM orders WHERE id IN (' + list + ')');\n}\n```\nBecause the array `ids` is joined into a string and then interpolated directly into the SQL text, an attacker can inject arbitrary SQL.\n\n---\n\n### Injection payload & effect  \n\nAssume the caller passes the following array (controlled by the user):\n\n```javascript\nids = [\"1) OR 1=1--\"]\n```\n\nThe resulting SQL sent to PostgreSQL is:\n\n```sql\nSELECT * FROM orders WHERE id IN (1) OR 1=1--)\n```\n\nExplanation:\n\n* The opening `(` from the query is matched by the `)` inside the payload, closing the `IN` list early.  \n* `OR 1=1` is then appended, making the `WHERE` clause always true.  \n* The trailing `--` comments out the final `)` that the query builder added, preventing a syntax error.\n\n**Effect:** The query returns **every row** from the `orders` table (or, with a different payload, could modify/drop data). For example, a payload like `[\"2; DROP TABLE orders;--\"]` would produce:\n\n```sql\nSELECT * FROM orders WHERE id IN (2; DROP TABLE orders;--)\n```\n\nwhich executes `DROP TABLE orders` after the `SELECT`.\n\n---\n\n### Why the other two queries are safe  \n\n| Function | How it builds the SQL | Why it is safe |\n|----------|----------------------|----------------|\n| `findById` (**[repo]**) | `db.query('SELECT * FROM orders WHERE id = $1', [id]);` | The user‑supplied `id` is passed as a parameter (`$1`). The wrapper **[db]** sends the text and the parameter array to `pg.query`, which binds the value server‑side; no interpolation occurs. |\n| `search` (**[repo]**) | `db.query('SELECT * FROM orders WHERE note LIKE $1', ['%' + term + '%']);` | The search term is concatenated with `%` **inside the JavaScript string**, then the whole resulting string is supplied as a single parameter (`$1`). Again, the value is bound, not interpolated into the SQL text. |\n\nBoth rely on the property of **[db]** that “`$1,$2…` are bound server‑side and never interpolated”.\n\n---\n\n### Minimal fix  \n\nGenerate a parameter placeholder for each element and pass the array as the parameter list:\n\n```javascript\nfunction byIds(ids) {\n  // Create $1, $2, … placeholders matching the length of ids\n  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n  const sql = `SELECT * FROM orders WHERE id IN (${placeholders})`;\n  return db.query(sql, ids);   // ids are now bound as parameters\n}\n```\n\n*If the driver supported array parameters directly, you could also use `= ANY($1)`, but the placeholder‑generation approach works with the existing `pg` wrapper and requires only the change shown above.*\n\n---\n\n**Citations**  \n* Vulnerable code: **[repo]** – `byIds` function.  \n* Safe wrapper behavior: **[db]** – description of `module.exports.query`.  \n* Fix: applies the same parameter‑binding pattern used by the other two functions in **[repo]**.",
+        "tokens": 1400,
+        "reasoningTokens": 631,
+        "ms": 15221,
+        "genId": "gen-1785181451-cbNwMPRGJaxp4cPswnPA"
+      },
+      "b": {
+        "name": "GPT-OSS 20B",
+        "provider": "OpenAI",
+        "slug": "openai/gpt-oss-20b:free",
+        "response": "**Where the injection actually lands**\n\nThe only query that does **not** use a parameter placeholder is the `byIds` function in **[repo]**:\n\n```js\n// repo/orders.js\nfunction byIds(ids) {\n  const list = ids.join(',');\n  return db.query('SELECT * FROM orders WHERE id IN (' + list + ')');\n}\n```\n\n`ids` is concatenated straight into the SQL string, so whatever the caller passes can be executed by the database.\n\n---\n\n### Injection payload & effect\n\nAssume the caller passes:\n\n```js\nids = ['1', '2); DROP TABLE orders; --'];\n```\n\nThe resulting SQL becomes:\n\n```sql\nSELECT * FROM orders WHERE id IN (1,2); DROP TABLE orders; --)\n```\n\nThe database will execute two statements:\n\n1. `SELECT * FROM orders WHERE id IN (1,2);`\n2. `DROP TABLE orders;`\n\nThe second statement destroys the table – a classic SQL‑injection attack.\n\nA simpler, non‑destructive payload that demonstrates the flaw is:\n\n```js\nids = ['1 OR 1=1'];\n```\n\nResulting SQL:\n\n```sql\nSELECT * FROM orders WHERE id IN (1 OR 1=1)\n```\n\nThis returns **all** rows in the table, bypassing any intended filtering.\n\n---\n\n### Why the other two queries are safe\n\n| Function | Code | Why it’s safe |\n|----------|------|---------------|\n| `findById` | `db.query('SELECT * FROM orders WHERE id = $1', [id]);` | Uses a `$1` placeholder; the value is sent to PostgreSQL as a bound parameter, never interpolated into the SQL string. |\n| `search` | `db.query('SELECT * FROM orders WHERE note LIKE $1', ['%' + term + '%']);` | The `LIKE` pattern is also passed as a bound parameter (`$1`). Even though the pattern contains `%`, it is still treated as data, not code. |\n\nThe **[db]** wrapper simply forwards the text and parameters to `pg.pool.query`, which guarantees server‑side binding for `$n` placeholders. Thus, both `findById` and `search` are immune to injection.\n\n---\n\n### Minimal fix for `byIds`\n\nReplace the string‑join with a parameterised approach. Two common patterns:\n\n1. **Using `ANY` with an array parameter**\n\n   ```js\n   // repo/orders.js\n   function byIds(ids) {\n     return db.query('SELECT * FROM orders WHERE id = ANY($1::int[])', [ids]);\n   }\n   ```\n\n   PostgreSQL will treat the array as a single bound parameter.\n\n2. **Generating placeholders for each id**\n\n   ```js\n   // repo/orders.js\n   function byIds(ids) {\n     const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n     const text = `SELECT * FROM orders WHERE id IN (${placeholders})`;\n     return db.query(text, ids);\n   }\n   ```\n\nEither change ensures that every element of `ids` is sent as a bound parameter, eliminating the injection vector.\n\n---\n\n**Summary**\n\n- **Vulnerable query:** `byIds` in **[repo]** (unparameterised IN list).  \n- **Payload example:** `['1 OR 1=1']` → returns all rows; `['1', '2); DROP TABLE orders; --']` → destructive.  \n- **Safe queries:** `findById` and `search` use `$1` placeholders and are protected by **[db]**.  \n- **Fix:** Parameterise the IN clause (e.g., `WHERE id = ANY($1::int[])` or use per‑id placeholders).",
+        "tokens": 1158,
+        "reasoningTokens": 364,
+        "ms": 80127,
+        "genId": "gen-1785181451-SIRsaePGeBgWRWC7FFr9"
+      },
+      "judges": [
+        {
+          "name": "Gemma 4 31B",
+          "provider": "Google"
+        },
+        {
+          "name": "Ling 3.0 Flash",
+          "provider": "InclusionAI"
+        },
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "Gemma 4 31B",
+            "provider": "Google",
+            "slug": "google/gemma-4-31b-it:free"
+          },
+          "abstain": true,
+          "reason": "upstream rate-limited (backoff exhausted)"
+        },
+        {
+          "judge": {
+            "name": "Ling 3.0 Flash",
+            "provider": "InclusionAI",
+            "slug": "inclusionai/ling-3.0-flash:free"
+          },
+          "saw": {
+            "A": "GPT-OSS 20B",
+            "B": "Nemotron 3 Super 120B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model A provides a clearer summary tying all deliverables together and offers two distinct fix approaches (ANY with array parameter and per-id placeholders), giving it a slight edge in completeness over Model B.",
+          "criteria": {
+            "correctness": "Both models correctly identify byIds as the injectable query, provide valid injection payloads and effects, correctly explain why findById and search are safe, and give correct fixes.",
+            "grounding": "Both models properly cite [repo] and [db] artifact IDs and ground their claims in the provided code and wrapper description.",
+            "constraintHandling": "Neither model claims the LIKE query is injectable; both correctly recognize that search's % wildcards are part of the bound parameter value, not SQL code.",
+            "completeness": "Model A includes a summary section and two fix approaches (ANY with array and placeholder generation), while Model B provides one primary fix with a brief mention of the alternative; both cover all required deliverables."
+          }
+        },
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Super 120B",
+            "B": "GPT-OSS 20B"
+          },
+          "winner": "a",
+          "confidence": 95,
+          "decisiveDifference": "Model A includes the exact expected injection payload “1) OR 1=1--”, while Model B does not include that payload.",
+          "criteria": {
+            "correctness": "Model A correctly identifies byIds as the injectable query, shows the expected payload, explains the safety of findById and search, and provides the minimal placeholder fix.",
+            "grounding": "Model A grounds its claims by citing the [repo] and [db] artifacts and referencing the actual code snippets.",
+            "constraintHandling": "Model A never claims the LIKE query is injectable, respecting the automatic disqualifier.",
+            "completeness": "Model A covers all four deliverables (d1‑d4) with citations and a clear fix."
+          }
+        }
+      ]
+    },
+    "match-6da458621c6b4a76fbdb": {
+      "matchId": "match-6da458621c6b4a76fbdb",
+      "category": "security",
+      "ranAt": "2026-07-27T20:02:11.238Z",
+      "task": {
+        "id": "security/path-traversal-download",
+        "version": 1,
+        "cluster": "taint-flow",
+        "difficulty": "standard",
+        "title": "A File Download Endpoint With One Un-Neutralized User Path",
+        "summary": "Two handlers take a user-supplied filename; one lets an attacker read /etc/passwd. Trace the taint.",
+        "publicHash": "766d6981398c16e664c9a836c4fb66dfc47f5ddcea21a63b5349fc79fc6e679b",
+        "privateHash": "2c13ceb2f50c10be90496c7e657bae1c424b539bb9984f792e8ebd85c0fc3b28"
+      },
+      "outcome": "judged",
+      "winner": "b",
+      "panel": "3-0",
+      "unanimous": true,
+      "reason": null,
+      "a": {
+        "name": "Gemma 4 26B",
+        "provider": "Google",
+        "slug": "google/gemma-4-26b-a4b-it:free",
+        "response": "### Vulnerability Analysis\n\nThe vulnerable handler is **`exportFile`** in `handlers/export.js` [export].\n\n#### Exploitability Proof\nThe `exportFile` handler performs direct string concatenation between a hardcoded directory (`ROOT`) and user-controlled input (`req.query.file`) without any path normalization or validation [export]. Because the input is sourced from a query parameter, an attacker can inject directory traversal sequences (`../`) to escape the intended directory.\n\n*   **Exploit Input:** `GET /export?file=../../etc/passwd`\n*   **Resulting Path:** `/srv/exports/../../etc/passwd`\n*   **Disclosed File:** `/etc/passwd`\n\n#### Security Comparison\n*   **`avatar` (Safe):** This handler implements a \"resolve-and-verify\" pattern [avatar]. It uses `path.resolve()` to normalize the path (resolving all `..` segments) and then explicitly checks if the resulting absolute path still begins with the intended `ROOT` directory [avatar]. If a traversal attempt is made (e.g., `name=../etc/passwd`), `path.resolve` produces `/etc/passwd`, which fails the `.startsWith(ROOT)` check, resulting in a `403 Forbidden` [avatar].\n*   **`exportFile` (Vulnerable):** This handler lacks normalization [export]. It passes the raw concatenated string directly to `fs.readFile`. Since `fs.readFile` resolves `../` segments relative to the current working directory or the provided base, the attacker can traverse the filesystem [export].\n\n### Minimal Fix\nTo secure the `exportFile` handler, implement the same normalization and validation logic used in the `avatar` handler.\n\n```javascript\nconst path = require('path'); // Ensure path is imported\nconst fs = require('fs');\nconst ROOT = '/srv/exports/';\n\nfunction exportFile(req, res) {\n  const name = req.query.file || '';\n  // 1. Resolve the absolute path to neutralize traversal segments\n  const full = path.resolve(ROOT, name);\n  \n  // 2. Validate that the resolved path is within the intended ROOT\n  if (!full.startsWith(ROOT)) return res.status(403).end();\n\n  fs.readFile(full, (err, buf) => {\n    if (err) return res.status(404).end();\n    res.setHeader('Content-Type', 'application/octet-stream');\n    res.send(buf);\n  });\n}\n```",
+        "tokens": 551,
+        "reasoningTokens": 0,
+        "ms": 28337,
+        "genId": "gen-1785182353-53fFSDVxFmZENIuspJNx",
+        "eloBefore": 984,
+        "eloAfter": 969.5
+      },
+      "b": {
+        "name": "Nemotron 3 Ultra 550B",
+        "provider": "NVIDIA",
+        "slug": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "response": "**Vulnerable handler:** `export` ([export])\n\n**Exploit input:** `GET /export?file=../../etc/passwd`\n\n**File disclosed:** `/etc/passwd` (or any file readable by the process)\n\n**Why `export` is vulnerable:**  \nThe handler concatenates user input directly to `ROOT` with `ROOT + name` ([export] L7). No normalization or containment check is performed, so `../` sequences traverse upward from `/srv/exports/` to the filesystem root.\n\n**Why `avatar` is safe:**  \n`path.resolve(ROOT, name)` normalizes the path (collapsing `..` and `.` segments) ([avatar] L6). The subsequent `startsWith(ROOT + path.sep)` check ([avatar] L7) guarantees the *resolved* path remains inside `/srv/avatars/`. Even if `:name` contains `../`, resolution happens before the boundary check.\n\n**Minimal fix for `export`:**  \nReplace the concatenation with resolution + containment check, mirroring `avatar`:\n\n```js\nconst path = require('path');\nconst full = path.resolve(ROOT, name);\nif (!full.startsWith(ROOT + path.sep)) return res.status(403).end();\nfs.readFile(full, ...);\n```",
+        "tokens": 725,
+        "reasoningTokens": 449,
+        "ms": 68107,
+        "genId": "gen-1785182353-DsyQBOXjFdoE7bZDxkYk",
+        "eloBefore": 1016,
+        "eloAfter": 1030.5
+      },
+      "judges": [
+        {
+          "name": "North Mini Code",
+          "provider": "Cohere"
+        },
+        {
+          "name": "Ling 3.0 Flash",
+          "provider": "InclusionAI"
+        },
+        {
+          "name": "GPT-OSS 20B",
+          "provider": "OpenAI"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "North Mini Code",
+            "provider": "Cohere",
+            "slug": "cohere/north-mini-code:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Ultra 550B",
+            "B": "Gemma 4 26B"
+          },
+          "winner": "b",
+          "confidence": 85,
+          "decisiveDifference": "Model B’s explanation of avatar safety omits the required startsWith(ROOT + path.sep) check, while Model A includes it exactly as required.",
+          "criteria": {
+            "correctness": "Model A correctly identifies export as vulnerable, provides the exact exploit input and disclosed file, explains avatar’s safety with the precise path.resolve and startsWith(ROOT + path.sep) check, and proposes the identical resolve‑then‑contain fix, matching the hidden reference exactly.",
+            "grounding": "Model A cites specific line numbers and artifact identifiers ([export] L7, [avatar] L6‑7), directly linking its claims to the source code, whereas Model B lacks line‑number citations.",
+            "constraintHandling": "Both answers respect all constraints and avoid the automatic disqualification of claiming avatar.js is exploitable; Model A does so without any extra claims.",
+            "completeness": "Model B supplies a more fully‑written fix with the entire exportFile function, while Model A’s fix is a minimal snippet that omits the fs import, making Model B slightly more complete."
+          }
+        },
+        {
+          "judge": {
+            "name": "Ling 3.0 Flash",
+            "provider": "InclusionAI",
+            "slug": "inclusionai/ling-3.0-flash:free"
+          },
+          "saw": {
+            "A": "Gemma 4 26B",
+            "B": "Nemotron 3 Ultra 550B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model A's fix uses `full.startsWith(ROOT)` while avatar.js uses `full.startsWith(ROOT + path.sep)`; Model B correctly mirrors the exact avatar.js containment check including `path.sep`.",
+          "criteria": {
+            "correctness": "Both correctly identify export.js as vulnerable and avatar.js as safe, but Model B's fix precisely replicates the avatar.js pattern including the `path.sep` boundary check.",
+            "grounding": "Model B cites specific line numbers ([export] L7, [avatar] L6, [avatar] L7) and both reference artifact IDs, but Model B's fix code is a faithful mirror of avatar.js.",
+            "constraintHandling": "Both handle all four deliverables (d1–d4) and avoid the disqualifier of claiming avatar.js is exploitable.",
+            "completeness": "Both cover vulnerability identification, exploit proof, safety explanation, and minimal fix; Model B is more concise while being equally or more precise."
+          }
+        },
+        {
+          "judge": {
+            "name": "GPT-OSS 20B",
+            "provider": "OpenAI",
+            "slug": "openai/gpt-oss-20b:free"
+          },
+          "saw": {
+            "A": "Nemotron 3 Ultra 550B",
+            "B": "Gemma 4 26B"
+          },
+          "winner": "b",
+          "confidence": 90,
+          "decisiveDifference": "Model B’s minimal fix uses startsWith(ROOT) instead of the correct startsWith(ROOT + path.sep) used in avatar.js, making its containment check incomplete.",
+          "criteria": {
+            "correctness": "Both answers correctly identify export.js as vulnerable, the exploit input, the disclosed file, and explain why avatar.js is safe.",
+            "grounding": "Both cite the relevant artifact lines and provide evidence for each claim.",
+            "constraintHandling": "Both satisfy the task constraints, citing artifact ids and giving a minimal fix.",
+            "completeness": "Both answers include all required deliverables: vulnerable handler, exploit input, disclosed file, safety explanation, and minimal fix."
+          }
+        }
+      ]
+    },
+    "match-575d7f934cb7af605872": {
+      "matchId": "match-575d7f934cb7af605872",
+      "category": "security",
+      "ranAt": "2026-07-27T20:06:09.774Z",
+      "task": {
+        "id": "security/sql-in-clause",
+        "version": 1,
+        "cluster": "vuln-discovery",
+        "difficulty": "standard",
+        "title": "Parameterized Everywhere Except the One Dynamic IN Clause",
+        "summary": "A repository parameterizes its queries — except one that builds an IN (...) list by hand. Find the injection.",
+        "publicHash": "6d8112c9a06ea9d50413b393cc99db7c15925013116a3be135e70b03ce94a9e9",
+        "privateHash": "243d6f6f1ec85cf8dc755ee213842ab9fd1a450646cf7a820468a370353fe532"
+      },
+      "outcome": "no-contest",
+      "winner": null,
+      "panel": null,
+      "unanimous": false,
+      "reason": "no-majority",
+      "a": {
+        "name": "North Mini Code",
+        "provider": "Cohere",
+        "slug": "cohere/north-mini-code:free",
+        "response": "**Vulnerable query – `byIds`**\n\nThe only place where user‑controlled data is concatenated directly into the SQL text is in **`byIds`** (`[repo] repo/orders.js`).\n\n```js\nfunction byIds(ids) {\n  const list = ids.join(',');                     // ← raw string built from user input\n  return db.query('SELECT * FROM orders WHERE id IN (' + list + ')');\n}\n```\n\nBecause the `list` is inserted with `+` before the query is passed to `db.query`, the PostgreSQL driver never sees a placeholder – the values are part of the query text itself.\n\n---\n\n### Proof of exploitability\n\n**Payload**\n\n```js\nbyIds([\n  '1',\n  '2',\n  '3); DROP TABLE orders; --'\n]);\n```\n\n**Resulting query sent to the server**\n\n```\nSELECT * FROM orders WHERE id IN (1,2,3); DROP TABLE orders; --)\n```\n\n* The `DROP TABLE orders;` statement is executed after the `SELECT`.\n* The trailing `--` comments out the closing `)` that the driver would have added, so the query is syntactically valid for the server.\n\nThus an attacker can:\n\n* **Exfiltrate** data from other tables (e.g., `UNION SELECT ...`).\n* **Modify** or **delete** data (`INSERT …`, `UPDATE …`, `DROP …`).\n* **Cause denial‑of‑service** by dropping or truncating tables.\n\nThe injection is possible because the `ids` array elements are **not** passed as bound parameters; they become part of the SQL text.\n\n---\n\n### Why the other two queries are safe\n\n| Function | Code (excerpt) | How it protects against injection |\n|----------|----------------|-----------------------------------|\n| `findById` | `db.query('SELECT * FROM orders WHERE id = $1', [id]);` | The placeholder `$1` is a **bound parameter**; the driver sends the value separately to the server (`[db] db.js`). No string interpolation occurs. |\n| `search`   | `db.query('SELECT * FROM orders WHERE note LIKE $1', ['%' + term + '%']);` | The `LIKE` pattern is built in JavaScript (`'%' + term + '%'`) **but the whole pattern is passed as a single bound parameter** (`$1`). The pattern is never interpreted as SQL, only as data. |\n\nBoth use the `$1, $2…` placeholder style that the wrapper (`[db] db.js`) guarantees is **server‑side bound** and never interpolated.\n\n---\n\n### Minimal fix for `byIds`\n\nThe safest, minimal change is to keep the same “parameter‑everywhere” pattern and let the driver handle the `IN` list:\n\n```js\nfunction byIds(ids) {\n  // Create a placeholder for each id: $1, $2, $3 …\n  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n  // Pass the original ids array as the parameters – they will be bound individually.\n  return db.query(\n    `SELECT * FROM orders WHERE id IN (${placeholders})`,\n    ids\n  );\n}\n```\n\n*If the underlying driver supports PostgreSQL’s `ANY` operator, an even shorter fix is possible:*\n\n```js\nfunction byIds(ids) {\n  return db.query(\n    'SELECT * FROM orders WHERE id = ANY($1)',\n    [ids]               // driver converts the JS array to a PostgreSQL array\n  );\n}\n```\n\nBoth approaches keep **all user input as bound parameters**, eliminating the injection vector while preserving the original functionality.\n\n---\n\n**Summary**\n\n* Vulnerable query: `byIds` (`[repo] repo/orders.js`).\n* Injection demonstrated with `byIds(['1','2','3); DROP TABLE orders; --'])`.\n* `findById` and `search` are safe because they use `$1` placeholders and pass values as bound parameters (`[db] db.js`).\n* Minimal fix: replace the string‑concatenated `IN` list with placeholders (or an `ANY($1)` array) so every user value is passed as a bound parameter.",
+        "tokens": 1685,
+        "reasoningTokens": 860,
+        "ms": 20512,
+        "genId": "gen-1785182532-NeYhjDf78lfqGxufzoRe"
+      },
+      "b": {
+        "name": "Ling 3.0 Flash",
+        "provider": "InclusionAI",
+        "slug": "inclusionai/ling-3.0-flash:free",
+        "response": "The vulnerable query is `byIds` [repo]. It builds the `IN` list by string-joining the raw `ids` array via `ids.join(',')` without parameterization [repo].\n\n**Injection Payload and Effect**\nIf `ids` is `['1', '1) OR 1=1--']`, the `join` operation produces the string `\"1, 1) OR 1=1--\"` [repo]. The resulting SQL becomes:\n`SELECT * FROM orders WHERE id IN (1, 1) OR 1=1--)` [repo].\nThe `OR 1=1` clause makes the `WHERE` condition true for all rows, bypassing the intended ID filter and returning the entire `orders` table [repo].\n\n**Why the Other Two Are Safe**\n`findById` and `search` pass user input as the second argument to `db.query` [repo]. Per `[db] db.js`, `pool.query(text, params)` binds these values server-side, ensuring the database driver treats the input strictly as data rather than executable SQL syntax [db].\n\n**Minimal Fix**\nReplace the string concatenation with dynamically generated placeholders and pass the `ids` array as query parameters:\n```javascript\nfunction byIds(ids) {\n  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');\n  return db.query(`SELECT * FROM orders WHERE id IN (${placeholders})`, ids);\n}\n```\nThis ensures the `ids` are transmitted separately from the SQL command, aligning with the safe parameter-binding pattern used in `findById` and `search` [repo][db].",
+        "tokens": 2729,
+        "reasoningTokens": 2129,
+        "ms": 8722,
+        "genId": "gen-1785182533-UTwaVMDeprHNG1N1IIS4"
+      },
+      "judges": [
+        {
+          "name": "GPT-OSS 20B",
+          "provider": "OpenAI"
+        },
+        {
+          "name": "Nemotron 3 Super 120B",
+          "provider": "NVIDIA"
+        },
+        {
+          "name": "Gemma 4 31B",
+          "provider": "Google"
+        }
+      ],
+      "votes": [
+        {
+          "judge": {
+            "name": "GPT-OSS 20B",
+            "provider": "OpenAI",
+            "slug": "openai/gpt-oss-20b:free"
+          },
+          "saw": {
+            "A": "Ling 3.0 Flash",
+            "B": "North Mini Code"
+          },
+          "winner": "a",
+          "confidence": 90,
+          "decisiveDifference": "Model B provides a realistic, syntactically valid injection payload and shows the exact resulting query, whereas Model A’s payload is less realistic and may not execute correctly.",
+          "criteria": {
+            "correctness": "Both answers correctly identify byIds as the vulnerable query and explain why findById and search are safe.",
+            "grounding": "Model B gives concrete code snippets of the injected query and its effect, providing stronger evidence than Model A’s more generic description.",
+            "constraintHandling": "Both respect the requirement to cite artifact ids and avoid claiming the LIKE query is injectable; Model B also offers an alternative ANY($1) fix.",
+            "completeness": "Model B covers all deliverables—identification, payload, safety explanation, and minimal fix—more thoroughly than Model A."
+          }
+        },
+        {
+          "judge": {
+            "name": "Nemotron 3 Super 120B",
+            "provider": "NVIDIA",
+            "slug": "nvidia/nemotron-3-super-120b-a12b:free"
+          },
+          "saw": {
+            "A": "North Mini Code",
+            "B": "Ling 3.0 Flash"
+          },
+          "winner": "b",
+          "confidence": 70,
+          "decisiveDifference": "Model A incorrectly states that the PostgreSQL driver would add a closing parenthesis after the IN list, when the parenthesis is actually part of the query string built by the code; Model B’s explanation of the injection effect is accurate without this mischaracterization.",
+          "criteria": {
+            "correctness": "Both answers correctly identify `byIds` as the injectable query and explain why `findById` and `search` are safe via parameter binding.",
+            "grounding": "Each answer cites the relevant artifact IDs ([repo] and [db]) to support its claims about the vulnerable query and the safety of the other two.",
+            "constraintHandling": "Both answers refrain from claiming the LIKE query is injectable, thus respecting the automatic disqualifier.",
+            "completeness": "Each provides an injection payload with its effect, a explanation of safety for the other two queries, and a minimal fix using generated placeholders (or ANY) that keeps all user input as bound parameters."
+          }
+        },
+        {
+          "judge": {
+            "name": "Gemma 4 31B",
+            "provider": "Google",
+            "slug": "google/gemma-4-31b-it:free"
+          },
+          "abstain": true,
+          "reason": "upstream rate-limited (backoff exhausted)"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,358 @@
+@import "tailwindcss";
+
+/* ---------- theme tokens ----------
+   Dark is the default; [data-theme="light"] overrides. A pre-paint
+   inline script in layout.tsx sets the attribute, so there is no flash. */
+:root {
+  --bg: #04070a;
+  --panel: #0a0f10;
+  --chip: rgba(255, 255, 255, 0.05);
+  --chip-2: rgba(255, 255, 255, 0.09);
+  --edge: rgba(255, 255, 255, 0.08);
+  --edge-2: rgba(255, 255, 255, 0.16);
+  --t1: #f8fafc;
+  --t2: #cbd5e1;
+  --t3: #94a3b8;
+  --t4: #64748b;
+  --accent: #34d399;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  /* chart series — validated for dark surface (CVD dE 24, contrast >= 3:1) */
+  --s1: #0ea371;
+  --s2: #8b5cf6;
+  --dot-muted: #55636f;
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --card-a: rgba(16, 22, 21, 0.72);
+  --card-b: rgba(8, 12, 11, 0.72);
+  --tooltip-bg: #0d1413;
+  --terminal-bg: #060a09;
+  --pass: #34d399;
+  --fail: #f87171;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #f4f8f6;
+  --panel: #ffffff;
+  --chip: rgba(6, 46, 36, 0.05);
+  --chip-2: rgba(6, 46, 36, 0.09);
+  --edge: rgba(6, 46, 36, 0.12);
+  --edge-2: rgba(6, 46, 36, 0.22);
+  --t1: #0b1512;
+  --t2: #24313b;
+  --t3: #4b5a66;
+  --t4: #6b7a85;
+  --accent: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.1);
+  --s1: #059669;
+  --s2: #7c3aed;
+  --dot-muted: #9aa8b2;
+  --grid-line: rgba(6, 46, 36, 0.08);
+  --card-a: rgba(255, 255, 255, 0.9);
+  --card-b: rgba(244, 250, 247, 0.9);
+  --tooltip-bg: #ffffff;
+  --terminal-bg: #071210;
+  --pass: #059669;
+  --fail: #dc2626;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-ink: var(--bg);
+  --color-panel: var(--panel);
+  --color-chip: var(--chip);
+  --color-chip2: var(--chip-2);
+  --color-edge: var(--edge);
+  --color-edge2: var(--edge-2);
+  --color-t1: var(--t1);
+  --color-t2: var(--t2);
+  --color-t3: var(--t3);
+  --color-t4: var(--t4);
+  --color-accent: var(--accent);
+  --color-mint: #3ee6b0;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--t2);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.display { letter-spacing: -0.035em; }
+
+/* ---------- static backdrop (no animation, no filter blurs) ---------- */
+.backdrop {
+  background:
+    radial-gradient(60% 44% at 50% -6%, rgba(16, 185, 129, 0.16), transparent 70%),
+    radial-gradient(30% 26% at 85% 30%, rgba(52, 211, 153, 0.07), transparent 70%);
+}
+.grid-bg {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 75% 55% at 50% 0%, #000 35%, transparent 100%);
+}
+
+/* darker hero gradient so the headline stays readable on light surfaces */
+[data-theme="light"] .hero-grad {
+  background-image: linear-gradient(90deg, #047857, #059669 55%, #0d9488);
+}
+
+/* ---------- cards: solid gradients, no backdrop-filter ---------- */
+.card {
+  background: linear-gradient(180deg, var(--card-a), var(--card-b));
+  border: 1px solid var(--edge);
+}
+.champion-glow {
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(16, 185, 129, 0.2), transparent 60%),
+    linear-gradient(180deg, var(--card-a), var(--card-b));
+  border: 1px solid var(--edge);
+}
+[data-theme="light"] .champion-glow {
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(16, 185, 129, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--card-a), var(--card-b));
+}
+
+/* ---------- buttons ---------- */
+.btn-primary {
+  background: linear-gradient(180deg, #0c8f63, #047857 60%, #035c43);
+  color: #effaf3;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.18) inset, 0 10px 30px -10px rgba(4, 120, 87, 0.7), 0 0 0 1px rgba(16, 185, 129, 0.25);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: var(--chip);
+  border: 1px solid var(--edge);
+  color: var(--t2);
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.btn-ghost:hover { border-color: rgba(16, 185, 129, 0.5); color: var(--t1); background: var(--accent-soft); }
+
+.icon-btn {
+  display: grid; place-items: center; height: 38px; width: 38px;
+  border-radius: 10px; border: 1px solid var(--edge);
+  background: var(--chip); color: var(--t2);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.icon-btn:hover { color: var(--t1); border-color: rgba(16, 185, 129, 0.5); }
+
+/* ---------- nav: the only backdrop-filter on the page ---------- */
+.nav-scrolled {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--edge);
+}
+.nav-link { position: relative; transition: color 0.2s; }
+.nav-link::after {
+  content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 0;
+  background: linear-gradient(90deg, #34d399, #10b981);
+  transition: width 0.25s ease;
+}
+.nav-link:hover::after { width: 100%; }
+
+/* ---------- filter pills / fields ---------- */
+.filter-btn {
+  border-radius: 9999px; border: 1px solid var(--edge);
+  background: var(--chip); padding: 0.5rem 1.05rem;
+  font-size: 0.85rem; font-weight: 600; color: var(--t3);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.filter-btn:hover { color: var(--t1); border-color: rgba(16, 185, 129, 0.45); }
+.filter-btn.is-active {
+  color: #eafff6;
+  background: linear-gradient(180deg, #0c8f63, #047857);
+  border-color: transparent;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 8px 22px -8px rgba(4, 120, 87, 0.7);
+}
+
+.field {
+  border-radius: 0.7rem; border: 1px solid var(--edge);
+  background: var(--chip); color: var(--t1);
+  padding: 0.55rem 0.9rem; font-size: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field::placeholder { color: var(--t4); }
+/* `.field` is un-layered, so its `padding` shorthand outranks Tailwind's
+   `pl-*` utilities (which live in @layer utilities). Search inputs need room
+   for the leading icon — set the left pad here so it wins the cascade. */
+.field-search { padding-left: 2.35rem; }
+.field:focus { outline: none; border-color: rgba(16, 185, 129, 0.55); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+/* Native dropdown popups paint with UA/OS colors on Windows while the
+   options inherit the page text color — style them explicitly so the
+   list is readable in both themes. */
+select.field option,
+select.field optgroup {
+  background-color: var(--panel);
+  color: var(--t1);
+}
+select.field {
+  appearance: none; padding-right: 2.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.8rem center;
+}
+
+/* ---------- leaderboard ---------- */
+.lb-grid {
+  display: grid; align-items: center; gap: 0.6rem;
+  grid-template-columns: 40px minmax(0, 1fr) 72px 22px;
+  padding: 0.9rem 0.9rem;
+}
+@media (min-width: 768px) {
+  .lb-grid { grid-template-columns: 60px minmax(0, 1fr) 190px 84px 84px 64px 30px; padding: 0.95rem 1.35rem; gap: 0.85rem; }
+}
+.lb-col-md { display: none; }
+@media (min-width: 768px) { .lb-col-md { display: block; } }
+@media (max-width: 767px) { .lb-grid .delta { display: none; } }
+
+.lb-head {
+  border-bottom: 1px solid var(--edge);
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--t4);
+}
+.lb-sort { cursor: pointer; user-select: none; transition: color 0.15s ease; display: inline-flex; align-items: center; gap: 3px; }
+.lb-sort:hover { color: var(--t1); }
+.lb-sort.is-sorted { color: var(--accent); }
+
+.lb-row { border-bottom: 1px solid var(--edge); transition: background 0.15s ease; position: relative; cursor: pointer; }
+.lb-row:hover { background: var(--accent-soft); }
+.lb-row .chev { transition: transform 0.25s ease; color: var(--t4); }
+.lb-row.open .chev { transform: rotate(180deg); color: var(--accent); }
+.lb-detail { border-bottom: 1px solid var(--edge); background: color-mix(in srgb, var(--panel) 55%, transparent); }
+
+/* arena ladder + match feed */
+.arena-grid {
+  display: grid; align-items: center; gap: 0.6rem;
+  grid-template-columns: 40px minmax(0, 1fr) 64px 64px;
+  padding: 0.9rem 0.9rem;
+}
+@media (min-width: 768px) {
+  .arena-grid { grid-template-columns: 60px minmax(0, 1fr) 84px 84px 72px 56px; padding: 0.95rem 1.35rem; gap: 0.85rem; }
+}
+.arena-col-md { display: none; }
+@media (min-width: 768px) { .arena-col-md { display: block; } }
+
+.vote-chip {
+  display: inline-grid; place-items: center; height: 18px; width: 18px; border-radius: 5px;
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+  background: var(--chip-2); color: var(--t3); border: 1px solid var(--edge);
+}
+.vote-chip.win { background: rgba(16, 185, 129, 0.14); color: var(--pass); border-color: transparent; }
+
+.rank-badge {
+  display: grid; place-items: center; height: 32px; width: 32px; border-radius: 10px;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.82rem;
+  background: var(--chip-2); color: var(--t3); border: 1px solid var(--edge);
+}
+.rank-1 { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #3a2606; border: none; }
+.rank-2 { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #1e293b; border: none; }
+.rank-3 { background: linear-gradient(135deg, #fdba74, #c2730c); color: #3a1d04; border: none; }
+
+.delta { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 700; }
+.delta.up { color: var(--pass); }
+.delta.down { color: var(--fail); }
+.delta.flat { color: var(--t4); }
+
+.score-bar { position: relative; height: 6px; border-radius: 9999px; background: var(--chip-2); overflow: hidden; width: 100%; }
+.score-bar > span {
+  position: absolute; inset: 0 auto 0 0; height: 100%; border-radius: 9999px;
+  background: linear-gradient(90deg, #047857, #34d399);
+}
+.mini-bar { position: relative; height: 4px; border-radius: 9999px; background: var(--chip-2); overflow: hidden; }
+.mini-bar > span { position: absolute; inset: 0 auto 0 0; border-radius: 9999px; background: linear-gradient(90deg, #047857, #34d399); }
+
+/* ---------- bench cards ---------- */
+.bench-card {
+  position: relative; border-radius: 1.1rem;
+  background: linear-gradient(180deg, var(--card-a), var(--card-b));
+  border: 1px solid var(--edge);
+  padding: 1.6rem;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.bench-card:hover { transform: translateY(-4px); border-color: rgba(16, 185, 129, 0.35); }
+
+/* ---------- compare ---------- */
+.cmp-bar-track { position: relative; height: 10px; border-radius: 9999px; background: var(--chip-2); overflow: hidden; }
+.cmp-bar-track > span { position: absolute; inset: 0 auto 0 0; border-radius: 9999px; }
+.swatch { display: inline-block; height: 10px; width: 10px; border-radius: 3px; }
+.win-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 9999px; padding: 1px 8px; font-size: 0.64rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: var(--accent-soft); color: var(--accent);
+}
+
+/* ---------- charts ---------- */
+.chart-tooltip {
+  position: absolute; z-index: 40; pointer-events: none;
+  background: var(--tooltip-bg); border: 1px solid var(--edge-2);
+  border-radius: 0.6rem; padding: 0.5rem 0.7rem; font-size: 0.75rem;
+  color: var(--t2); box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.45);
+  opacity: 0; transform: translateY(4px); transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+.chart-tooltip.show { opacity: 1; transform: none; }
+.vm-hit { fill: transparent; cursor: pointer; }
+.vm-hit:focus { outline: none; }
+
+/* ---------- journal ---------- */
+.journal-row {
+  display: grid; align-items: center; gap: 0.8rem;
+  grid-template-columns: 64px minmax(0, 1fr) 84px;
+  padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--edge);
+  font-size: 0.82rem;
+}
+@media (min-width: 640px) { .journal-row { grid-template-columns: 72px 170px minmax(0, 1fr) 110px 80px 80px; } }
+.journal-row:last-child { border-bottom: none; }
+.journal-col-sm { display: none; }
+@media (min-width: 640px) { .journal-col-sm { display: block; } }
+.journal-row.fresh { animation: journal-in 0.5s ease; }
+@keyframes journal-in {
+  from { opacity: 0; transform: translateY(-8px); background: var(--accent-soft); }
+  to { opacity: 1; transform: none; }
+}
+
+.pill-pass, .pill-fail {
+  display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px;
+  padding: 2px 9px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+}
+.pill-pass { background: rgba(16, 185, 129, 0.12); color: var(--pass); }
+.pill-fail { background: rgba(248, 113, 113, 0.12); color: var(--fail); }
+
+/* ---------- providers marquee (composited transform only) ---------- */
+.marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.marquee-track { display: flex; gap: 3.5rem; width: max-content; animation: marquee 32s linear infinite; will-change: transform; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* ---------- scroll reveal (class toggled by <Reveal/>) ---------- */
+.reveal-hidden { opacity: 0; transform: translateY(24px); }
+.reveal-in { opacity: 1; transform: none; transition: opacity 0.7s ease, transform 0.7s ease; }
+
+/* below-fold render skipping */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: auto 800px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal-hidden { opacity: 1; transform: none; }
+  .reveal-in { transition: none; }
+  .marquee-track { animation: none; }
+  .journal-row.fresh { animation: none; }
+}
