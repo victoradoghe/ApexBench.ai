@@ -3,7 +3,7 @@
    that breaks it — the correct rewrite, not the cleanest-looking one. */
 
 /** @type {import('./schema.mjs').Task[]} */
-export default [
+const tasks = [
   {
     id: 'refactoring/debounce-equivalence',
     version: 1,
@@ -234,3 +234,5 @@ function collect(item, into = SHARED) {   // "reuse one array to avoid allocatio
     },
   },
 ];
+
+export default tasks;

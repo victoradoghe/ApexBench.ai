@@ -27,6 +27,7 @@ function ThemeToggle() {
 
   useEffect(() => {
     const stored = (localStorage.getItem("apexbench-theme") as ThemePref) || "system";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPref(stored);
     const media = matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {

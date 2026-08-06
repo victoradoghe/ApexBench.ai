@@ -3,7 +3,7 @@
    symptom. */
 
 /** @type {import('./schema.mjs').Task[]} */
-export default [
+const tasks = [
   {
     id: 'debugging/race-double-charge',
     version: 1,
@@ -273,3 +273,5 @@ each deploy query: ~14 ms; projects query: ~9 ms`,
     },
   },
 ];
+
+export default tasks;

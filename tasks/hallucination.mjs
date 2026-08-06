@@ -4,7 +4,7 @@
    the most; refusing an answerable question is also an error. */
 
 /** @type {import('./schema.mjs').Task[]} */
-export default [
+const tasks = [
   {
     id: 'hallucination/false-migration',
     version: 1,
@@ -207,3 +207,5 @@ to fail faster under provider outages. Set opts.timeoutMs to override.`,
     },
   },
 ];
+
+export default tasks;

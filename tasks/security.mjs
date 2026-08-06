@@ -3,7 +3,7 @@
    everything that looks suspicious. */
 
 /** @type {import('./schema.mjs').Task[]} */
-export default [
+const tasks = [
   {
     id: 'security/jwt-alg-confusion',
     version: 1,
@@ -279,3 +279,5 @@ module.exports.query = (text, params = []) => pool.query(text, params);`,
     },
   },
 ];
+
+export default tasks;

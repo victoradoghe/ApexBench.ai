@@ -3,7 +3,7 @@
    finding the correct answer and citing the files that prove it. */
 
 /** @type {import('./schema.mjs').Task[]} */
-export default [
+const tasks = [
   {
     id: 'reasoning/semver-resolution',
     version: 1,
@@ -213,3 +213,5 @@ T3: lock A, then lock B, then commit.   (same order as T1)`,
     },
   },
 ];
+
+export default tasks;
