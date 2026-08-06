@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-08-06T15:34:40.112Z",
-  "speedMeasuredAt": "2026-08-06T15:34:40.120Z",
+  "updatedAt": "2026-08-06T15:38:10.361Z",
+  "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
     "anthropic/claude-fable-5": {
       "priceIn": 10,
       "priceOut": 50,
       "ctx": 1000,
-      "uptime": 95.51,
+      "uptime": 95.33,
       "tps": null,
       "ttft": 4.62
     },
@@ -63,15 +63,35 @@
       "priceIn": 1,
       "priceOut": 5,
       "ctx": 200,
-      "uptime": 99.93,
+      "uptime": 100,
       "tps": 117.9,
       "ttft": 1.15
+    },
+    "anthropic/claude-3.7-sonnet": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "anthropic/claude-3.5-sonnet": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "anthropic/claude-3.5-haiku": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "anthropic/claude-3-opus": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
     },
     "google/gemini-3.1-pro-preview": {
       "priceIn": 2,
       "priceOut": 12,
       "ctx": 1049,
-      "uptime": 97.45,
+      "uptime": 97.91,
       "tps": null,
       "ttft": 18
     },
@@ -79,9 +99,29 @@
       "priceIn": 1.5,
       "priceOut": 9,
       "ctx": 1049,
-      "uptime": 99.74,
+      "uptime": 99.67,
       "tps": null,
       "ttft": 2.34
+    },
+    "google/gemini-2.0-flash-001": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "google/gemini-2.0-flash-thinking-exp": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "google/gemini-pro-1.5": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "google/gemini-flash-1.5": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
       "priceIn": 0.435,
@@ -99,6 +139,27 @@
       "tps": 166.4,
       "ttft": 4.82
     },
+    "deepseek/deepseek-r1": {
+      "priceIn": 0.7,
+      "priceOut": 2.5,
+      "ctx": 164,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "deepseek/deepseek-chat": {
+      "priceIn": 0.257,
+      "priceOut": 1.029,
+      "ctx": 164,
+      "uptime": 99.98,
+      "tps": null,
+      "ttft": null
+    },
+    "deepseek/deepseek-coder": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
     "minimax/minimax-m2.5": {
       "priceIn": 0.22,
       "priceOut": 0.9,
@@ -111,7 +172,7 @@
       "priceIn": 0.3,
       "priceOut": 1.2,
       "ctx": 1049,
-      "uptime": 99.73,
+      "uptime": 99.83,
       "tps": 146.9,
       "ttft": 2.55
     },
@@ -171,6 +232,46 @@
       "tps": null,
       "ttft": null
     },
+    "openai/o1": {
+      "priceIn": 15,
+      "priceOut": 60,
+      "ctx": 200,
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "openai/o3-mini": {
+      "priceIn": 1.1,
+      "priceOut": 4.4,
+      "ctx": 200,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "openai/gpt-4o": {
+      "priceIn": 2.5,
+      "priceOut": 10,
+      "ctx": 128,
+      "uptime": 99.98,
+      "tps": null,
+      "ttft": null
+    },
+    "openai/gpt-4o-mini": {
+      "priceIn": 0.15,
+      "priceOut": 0.6,
+      "ctx": 128,
+      "uptime": 99.95,
+      "tps": null,
+      "ttft": null
+    },
+    "openai/gpt-4-turbo": {
+      "priceIn": 10,
+      "priceOut": 30,
+      "ctx": 128,
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
     "z-ai/glm-5": {
       "priceIn": 0.95,
       "priceOut": 2.55,
@@ -215,7 +316,7 @@
       "priceIn": 0.3,
       "priceOut": 1,
       "ctx": 262,
-      "uptime": 97.38,
+      "uptime": 97.57,
       "tps": 78.4,
       "ttft": 1.32
     },
@@ -235,6 +336,27 @@
       "tps": null,
       "ttft": null
     },
+    "qwen/qwen-2.5-coder-32b-instruct": {
+      "priceIn": 0.66,
+      "priceOut": 1,
+      "ctx": 33,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "qwen/qwen-max": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "qwen/qwen-2.5-72b-instruct": {
+      "priceIn": 0.36,
+      "priceOut": 0.4,
+      "ctx": 33,
+      "uptime": 99.23,
+      "tps": null,
+      "ttft": null
+    },
     "x-ai/grok-4.5": {
       "priceIn": 2,
       "priceOut": 6,
@@ -251,6 +373,16 @@
       "tps": null,
       "ttft": null
     },
+    "x-ai/grok-3": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "x-ai/grok-2": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
     "sakana/fugu-ultra": {
       "priceIn": 5,
       "priceOut": 30,
@@ -263,9 +395,97 @@
       "priceIn": 0.5,
       "priceOut": 1.5,
       "ctx": 262,
-      "uptime": 99.93,
+      "uptime": 99.95,
       "tps": 50.9,
       "ttft": 1.34
+    },
+    "mistralai/codestral-2501": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "mistralai/mistral-large-2411": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "mistralai/mistral-small-2402": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "mistralai/pixtral-large-2411": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "meta-llama/llama-3.3-70b-instruct": {
+      "priceIn": 0.1,
+      "priceOut": 0.32,
+      "ctx": 131,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "meta-llama/llama-3.1-405b-instruct": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "meta-llama/llama-3.1-70b-instruct": {
+      "priceIn": 0.4,
+      "priceOut": 0.4,
+      "ctx": 131,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "priceIn": 0.05,
+      "priceOut": 0.08,
+      "ctx": 131,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "cohere/command-r-plus": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "cohere/command-r": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "amazon/nova-pro-v1": {
+      "priceIn": 0.8,
+      "priceOut": 3.2,
+      "ctx": 300,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "amazon/nova-lite-v1": {
+      "priceIn": 0.06,
+      "priceOut": 0.24,
+      "ctx": 300,
+      "uptime": 100,
+      "tps": null,
+      "ttft": null
+    },
+    "nvidia/llama-3.1-nemotron-70b-instruct": {
+      "uptime": null,
+      "tps": null,
+      "ttft": null
+    },
+    "perplexity/sonar-reasoning-pro": {
+      "priceIn": 2,
+      "priceOut": 8,
+      "ctx": 128,
+      "uptime": null,
+      "tps": null,
+      "ttft": null
     }
   }
 }
