@@ -4,8 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { MODELS, blendedPrice, paretoFrontier, type Model } from "@/data/models";
 
 const W = 760, H = 440, L = 52, RM = 20, T = 18, BM = 46;
-/* log-scale price axis: live blended $/M spans ~$0.3 to ~$20 */
-const X_MIN = 0.25, X_MAX = 30, Y_MIN = 50, Y_MAX = 100;
+/* log-scale price axis: live blended $/M spans ~$0.05 to ~$30 */
+const X_MIN = 0.05, X_MAX = 30, Y_MIN = 20, Y_MAX = 100;
 /* coordinates are rounded to 2dp: Math.log10 may differ by 1 ulp between
    the server and browser engines, which breaks React hydration */
 const X = (c: number) =>
@@ -13,8 +13,8 @@ const X = (c: number) =>
     (L + ((W - L - RM) * (Math.log10(c) - Math.log10(X_MIN))) / (Math.log10(X_MAX) - Math.log10(X_MIN))) * 100,
   ) / 100;
 const Y = (s: number) => Math.round((T + (H - T - BM) * (1 - (s - Y_MIN) / (Y_MAX - Y_MIN))) * 100) / 100;
-const X_TICKS = [0.25, 0.5, 1, 2, 5, 10, 20];
-const Y_TICKS = [50, 60, 70, 80, 90, 100];
+const X_TICKS = [0.05, 0.25, 0.5, 1, 2, 5, 10, 20];
+const Y_TICKS = [20, 40, 60, 80, 100];
 
 const fmtTick = (t: number) => (t < 1 ? `$${t.toFixed(2)}` : `$${t}`);
 
