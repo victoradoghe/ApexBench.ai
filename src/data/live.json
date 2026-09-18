@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-17T21:23:08.902Z",
+  "updatedAt": "2026-09-18T04:44:28.998Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -7,7 +7,7 @@
       "priceIn": 10,
       "priceOut": 50,
       "ctx": 1000,
-      "uptime": 99.73,
+      "uptime": 99.93,
       "tps": null,
       "ttft": 4.62
     },
@@ -15,7 +15,7 @@
       "priceIn": 5,
       "priceOut": 25,
       "ctx": 1000,
-      "uptime": 100,
+      "uptime": 99.98,
       "tps": null,
       "ttft": 1.54
     },
@@ -39,7 +39,7 @@
       "priceIn": 5,
       "priceOut": 25,
       "ctx": 200,
-      "uptime": 100,
+      "uptime": 99.9,
       "tps": null,
       "ttft": null
     },
@@ -91,7 +91,7 @@
       "priceIn": 2,
       "priceOut": 12,
       "ctx": 1049,
-      "uptime": 100,
+      "uptime": 99.97,
       "tps": null,
       "ttft": 18
     },
@@ -124,18 +124,18 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 1.6,
-      "priceOut": 3.2,
+      "priceIn": 0.943,
+      "priceOut": 1.887,
       "ctx": 1049,
       "uptime": 100,
       "tps": 56,
       "ttft": 1.14
     },
     "deepseek/deepseek-v4-flash": {
-      "priceIn": 0.07,
-      "priceOut": 0.14,
+      "priceIn": 0.089,
+      "priceOut": 0.177,
       "ctx": 1049,
-      "uptime": 100,
+      "uptime": 99.99,
       "tps": 166.4,
       "ttft": 4.82
     },
@@ -151,7 +151,7 @@
       "priceIn": 0.32,
       "priceOut": 0.89,
       "ctx": 164,
-      "uptime": 98.8,
+      "uptime": 99.83,
       "tps": null,
       "ttft": null
     },
@@ -244,7 +244,7 @@
       "priceIn": 1.1,
       "priceOut": 4.4,
       "ctx": 200,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -252,7 +252,7 @@
       "priceIn": 2.5,
       "priceOut": 10,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": 99.98,
       "tps": null,
       "ttft": null
     },
@@ -260,7 +260,7 @@
       "priceIn": 0.15,
       "priceOut": 0.6,
       "ctx": 128,
-      "uptime": 99.93,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -281,8 +281,8 @@
       "ttft": 13.35
     },
     "z-ai/glm-5.2": {
-      "priceIn": 1.4,
-      "priceOut": 4.4,
+      "priceIn": 0.488,
+      "priceOut": 1.56,
       "ctx": 1049,
       "uptime": 100,
       "tps": null,
@@ -305,8 +305,8 @@
       "ttft": 15.34
     },
     "moonshotai/kimi-k3": {
-      "priceIn": 3,
-      "priceOut": 15,
+      "priceIn": 2.1,
+      "priceOut": 10.95,
       "ctx": 1049,
       "uptime": 100,
       "tps": 27.2,
@@ -353,7 +353,7 @@
       "priceIn": 0.36,
       "priceOut": 0.4,
       "ctx": 33,
-      "uptime": 100,
+      "uptime": 99.17,
       "tps": null,
       "ttft": null
     },
@@ -361,7 +361,7 @@
       "priceIn": 2,
       "priceOut": 6,
       "ctx": 500,
-      "uptime": 99.51,
+      "uptime": 99.97,
       "tps": 97.1,
       "ttft": 2.18
     },
@@ -369,7 +369,7 @@
       "priceIn": 1.25,
       "priceOut": 2.5,
       "ctx": 2000,
-      "uptime": 99.31,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -387,13 +387,13 @@
       "priceIn": 5,
       "priceOut": 30,
       "ctx": 1000,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
     "mistralai/mistral-large-2512": {
-      "priceIn": 0.5,
-      "priceOut": 1.5,
+      "priceIn": 0.55,
+      "priceOut": 1.65,
       "ctx": 262,
       "uptime": 100,
       "tps": 50.9,
@@ -444,7 +444,7 @@
       "priceIn": 0.05,
       "priceOut": 0.08,
       "ctx": 131,
-      "uptime": 99.99,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -470,7 +470,7 @@
       "priceIn": 0.06,
       "priceOut": 0.24,
       "ctx": 300,
-      "uptime": 99.73,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -483,7 +483,7 @@
       "priceIn": 2,
       "priceOut": 8,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     }
