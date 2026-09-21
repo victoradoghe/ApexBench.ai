@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-20T20:49:53.003Z",
+  "updatedAt": "2026-09-21T04:56:58.302Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -7,7 +7,7 @@
       "priceIn": 10,
       "priceOut": 50,
       "ctx": 1000,
-      "uptime": 99.93,
+      "uptime": 99.94,
       "tps": null,
       "ttft": 4.62
     },
@@ -91,7 +91,7 @@
       "priceIn": 2,
       "priceOut": 12,
       "ctx": 1049,
-      "uptime": 100,
+      "uptime": 99.87,
       "tps": null,
       "ttft": 18
     },
@@ -124,16 +124,16 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 0.422,
-      "priceOut": 0.845,
+      "priceIn": 0.955,
+      "priceOut": 1.911,
       "ctx": 1049,
       "uptime": 100,
       "tps": 56,
       "ttft": 1.14
     },
     "deepseek/deepseek-v4-flash": {
-      "priceIn": 0.036,
-      "priceOut": 0.071,
+      "priceIn": 0.089,
+      "priceOut": 0.177,
       "ctx": 1049,
       "uptime": 100,
       "tps": 166.4,
@@ -151,7 +151,7 @@
       "priceIn": 0.32,
       "priceOut": 0.89,
       "ctx": 164,
-      "uptime": 99.59,
+      "uptime": 96.89,
       "tps": null,
       "ttft": null
     },
@@ -252,7 +252,7 @@
       "priceIn": 2.5,
       "priceOut": 10,
       "ctx": 128,
-      "uptime": 99.94,
+      "uptime": 99.86,
       "tps": null,
       "ttft": null
     },
@@ -260,7 +260,7 @@
       "priceIn": 0.15,
       "priceOut": 0.6,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": 99.93,
       "tps": null,
       "ttft": null
     },
@@ -292,7 +292,7 @@
       "priceIn": 0.45,
       "priceOut": 2.25,
       "ctx": 262,
-      "uptime": 100,
+      "uptime": 99.72,
       "tps": 115.9,
       "ttft": 19.16
     },
@@ -361,7 +361,7 @@
       "priceIn": 2,
       "priceOut": 6,
       "ctx": 500,
-      "uptime": 99.96,
+      "uptime": 99.9,
       "tps": 97.1,
       "ttft": 2.18
     },
@@ -420,7 +420,7 @@
       "priceIn": 0.1,
       "priceOut": 0.32,
       "ctx": 131,
-      "uptime": 99.99,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -430,8 +430,8 @@
       "ttft": null
     },
     "meta-llama/llama-3.1-70b-instruct": {
-      "priceIn": 0.4,
-      "priceOut": 0.4,
+      "priceIn": 0.72,
+      "priceOut": 0.72,
       "ctx": 131,
       "uptime": 100,
       "tps": null,
