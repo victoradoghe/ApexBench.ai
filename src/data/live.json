@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-22T04:57:35.094Z",
+  "updatedAt": "2026-09-22T11:39:33.760Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -31,7 +31,7 @@
       "priceIn": 5,
       "priceOut": 25,
       "ctx": 1000,
-      "uptime": 99.98,
+      "uptime": 100,
       "tps": null,
       "ttft": 2.6
     },
@@ -39,7 +39,7 @@
       "priceIn": 5,
       "priceOut": 25,
       "ctx": 200,
-      "uptime": 100,
+      "uptime": 99.92,
       "tps": null,
       "ttft": null
     },
@@ -135,7 +135,7 @@
       "priceIn": 0.089,
       "priceOut": 0.177,
       "ctx": 1049,
-      "uptime": 99.99,
+      "uptime": 99.98,
       "tps": 166.4,
       "ttft": 4.82
     },
@@ -151,7 +151,7 @@
       "priceIn": 0.32,
       "priceOut": 0.89,
       "ctx": 164,
-      "uptime": 94.97,
+      "uptime": 99.65,
       "tps": null,
       "ttft": null
     },
@@ -180,7 +180,7 @@
       "priceIn": 1.75,
       "priceOut": 14,
       "ctx": 400,
-      "uptime": 100,
+      "uptime": 99.95,
       "tps": 53.5,
       "ttft": 0.83
     },
@@ -252,7 +252,7 @@
       "priceIn": 2.5,
       "priceOut": 10,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": 99.97,
       "tps": null,
       "ttft": null
     },
@@ -260,7 +260,7 @@
       "priceIn": 0.15,
       "priceOut": 0.6,
       "ctx": 128,
-      "uptime": 99.97,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -340,7 +340,7 @@
       "priceIn": 0.66,
       "priceOut": 1,
       "ctx": 33,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -361,7 +361,7 @@
       "priceIn": 2,
       "priceOut": 6,
       "ctx": 500,
-      "uptime": 99.93,
+      "uptime": 98.08,
       "tps": 97.1,
       "ttft": 2.18
     },
@@ -441,7 +441,7 @@
       "priceIn": 0.05,
       "priceOut": 0.08,
       "ctx": 131,
-      "uptime": 99.92,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
