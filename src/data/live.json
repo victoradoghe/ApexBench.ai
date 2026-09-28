@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-28T13:56:21.971Z",
+  "updatedAt": "2026-09-28T23:16:54.462Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -55,7 +55,7 @@
       "priceIn": 3,
       "priceOut": 15,
       "ctx": 1000,
-      "uptime": 100,
+      "uptime": 99.99,
       "tps": 77.8,
       "ttft": 2.07
     },
@@ -91,7 +91,7 @@
       "priceIn": 2,
       "priceOut": 12,
       "ctx": 1049,
-      "uptime": 99.79,
+      "uptime": 100,
       "tps": null,
       "ttft": 18
     },
@@ -124,18 +124,18 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 0.948,
-      "priceOut": 1.896,
+      "priceIn": 0.783,
+      "priceOut": 1.566,
       "ctx": 1049,
-      "uptime": 100,
+      "uptime": 99.97,
       "tps": 56,
       "ttft": 1.14
     },
     "deepseek/deepseek-v4-flash": {
-      "priceIn": 0.084,
-      "priceOut": 0.168,
+      "priceIn": 0.049,
+      "priceOut": 0.098,
       "ctx": 1049,
-      "uptime": 99.97,
+      "uptime": 99.99,
       "tps": 166.4,
       "ttft": 4.82
     },
@@ -151,7 +151,7 @@
       "priceIn": 0.257,
       "priceOut": 1.029,
       "ctx": 164,
-      "uptime": 98.24,
+      "uptime": 98.75,
       "tps": null,
       "ttft": null
     },
@@ -252,7 +252,7 @@
       "priceIn": 2.5,
       "priceOut": 10,
       "ctx": 128,
-      "uptime": 99.94,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -260,7 +260,7 @@
       "priceIn": 0.15,
       "priceOut": 0.6,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": 99.95,
       "tps": null,
       "ttft": null
     },
@@ -292,7 +292,7 @@
       "priceIn": 0.45,
       "priceOut": 2.25,
       "ctx": 262,
-      "uptime": 99.71,
+      "uptime": 100,
       "tps": 115.9,
       "ttft": 19.16
     },
@@ -324,7 +324,7 @@
       "priceIn": 1.475,
       "priceOut": 4.425,
       "ctx": 1000,
-      "uptime": 99.95,
+      "uptime": 100,
       "tps": 72.2,
       "ttft": 75.97
     },
@@ -332,7 +332,7 @@
       "priceIn": 0.32,
       "priceOut": 1.28,
       "ctx": 1000,
-      "uptime": 99.95,
+      "uptime": 99.97,
       "tps": null,
       "ttft": null
     },
@@ -340,7 +340,7 @@
       "priceIn": 0.66,
       "priceOut": 1,
       "ctx": 33,
-      "uptime": 99.27,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -353,7 +353,7 @@
       "priceIn": 0.36,
       "priceOut": 0.4,
       "ctx": 33,
-      "uptime": 99.61,
+      "uptime": 99.09,
       "tps": null,
       "ttft": null
     },
@@ -361,7 +361,7 @@
       "priceIn": 2,
       "priceOut": 6,
       "ctx": 500,
-      "uptime": 100,
+      "uptime": 99.98,
       "tps": 97.1,
       "ttft": 2.18
     },
@@ -369,7 +369,7 @@
       "priceIn": 1.25,
       "priceOut": 2.5,
       "ctx": 2000,
-      "uptime": 99.94,
+      "uptime": 99.9,
       "tps": null,
       "ttft": null
     },
@@ -423,7 +423,7 @@
       "priceIn": 0.1,
       "priceOut": 0.32,
       "ctx": 131,
-      "uptime": 99.89,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
