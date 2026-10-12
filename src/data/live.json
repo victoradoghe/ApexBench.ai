@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-11T21:58:51.072Z",
+  "updatedAt": "2026-10-12T05:59:20.586Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -124,15 +124,15 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 0.209,
-      "priceOut": 0.418,
+      "priceIn": 0.955,
+      "priceOut": 1.911,
       "ctx": 1049,
       "uptime": 100,
       "tps": 56,
       "ttft": 1.14
     },
     "deepseek/deepseek-v4-flash": {
-      "priceIn": 0.03,
+      "priceIn": 0.013,
       "priceOut": 1.28,
       "ctx": 1049,
       "uptime": 100,
@@ -244,7 +244,7 @@
       "priceIn": 1.1,
       "priceOut": 4.4,
       "ctx": 200,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -268,7 +268,7 @@
       "priceIn": 10,
       "priceOut": 30,
       "ctx": 128,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -306,7 +306,7 @@
     },
     "moonshotai/kimi-k3": {
       "priceIn": 0.73,
-      "priceOut": 13.5,
+      "priceOut": 10,
       "ctx": 1049,
       "uptime": 100,
       "tps": 27.2,
@@ -462,7 +462,7 @@
       "priceIn": 0.8,
       "priceOut": 3.2,
       "ctx": 300,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -483,7 +483,7 @@
       "priceIn": 2,
       "priceOut": 8,
       "ctx": 128,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     }
