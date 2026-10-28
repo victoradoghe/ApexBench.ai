@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-28T12:55:33.064Z",
+  "updatedAt": "2026-10-28T22:35:42.623Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -124,8 +124,8 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 0.894,
-      "priceOut": 1.788,
+      "priceIn": 0.889,
+      "priceOut": 1.778,
       "ctx": 1049,
       "uptime": 100,
       "tps": 56,
@@ -230,18 +230,12 @@
       "ttft": null
     },
     "openai/o1": {
-      "priceIn": 15,
-      "priceOut": 60,
-      "ctx": 200,
       "uptime": null,
       "tps": null,
       "ttft": null
     },
     "openai/o3-mini": {
-      "priceIn": 1.1,
-      "priceOut": 4.4,
-      "ctx": 200,
-      "uptime": 0,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -262,9 +256,6 @@
       "ttft": null
     },
     "openai/gpt-4-turbo": {
-      "priceIn": 10,
-      "priceOut": 30,
-      "ctx": 128,
       "uptime": null,
       "tps": null,
       "ttft": null
@@ -278,8 +269,8 @@
       "ttft": 13.35
     },
     "z-ai/glm-5.2": {
-      "priceIn": 0.014,
-      "priceOut": 7,
+      "priceIn": 0.006,
+      "priceOut": 5.4,
       "ctx": 1049,
       "uptime": 100,
       "tps": null,
@@ -302,7 +293,7 @@
       "ttft": 15.34
     },
     "moonshotai/kimi-k3": {
-      "priceIn": 0.2,
+      "priceIn": 0.192,
       "priceOut": 20,
       "ctx": 1049,
       "uptime": 100,
@@ -313,7 +304,7 @@
       "priceIn": 0.3,
       "priceOut": 1,
       "ctx": 262,
-      "uptime": 100,
+      "uptime": 82.61,
       "tps": 78.4,
       "ttft": 1.32
     },
@@ -438,8 +429,8 @@
       "ttft": null
     },
     "meta-llama/llama-3.1-8b-instruct": {
-      "priceIn": 0.02,
-      "priceOut": 0.04,
+      "priceIn": 0.05,
+      "priceOut": 0.08,
       "ctx": 131,
       "uptime": 100,
       "tps": null,
@@ -459,7 +450,7 @@
       "priceIn": 0.8,
       "priceOut": 3.2,
       "ctx": 300,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -480,7 +471,7 @@
       "priceIn": 2,
       "priceOut": 8,
       "ctx": 128,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     }
