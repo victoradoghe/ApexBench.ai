@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-31T05:42:05.588Z",
+  "updatedAt": "2026-10-31T12:30:34.461Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -270,7 +270,7 @@
     },
     "z-ai/glm-5.2": {
       "priceIn": 0.006,
-      "priceOut": 7,
+      "priceOut": 6.8,
       "ctx": 1049,
       "uptime": 100,
       "tps": null,
@@ -328,7 +328,7 @@
       "priceIn": 0.66,
       "priceOut": 1,
       "ctx": 33,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -375,7 +375,7 @@
       "priceIn": 5,
       "priceOut": 30,
       "ctx": 1000,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -450,7 +450,7 @@
       "priceIn": 0.8,
       "priceOut": 3.2,
       "ctx": 300,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -471,7 +471,7 @@
       "priceIn": 2,
       "priceOut": 8,
       "ctx": 128,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     }
