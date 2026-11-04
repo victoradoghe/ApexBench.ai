@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-03T23:23:47.928Z",
+  "updatedAt": "2026-11-04T06:23:31.705Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -293,8 +293,8 @@
       "ttft": 15.34
     },
     "moonshotai/kimi-k3": {
-      "priceIn": 0.276,
-      "priceOut": 9.6,
+      "priceIn": 0.2,
+      "priceOut": 16,
       "ctx": 1049,
       "uptime": 100,
       "tps": 27.2,
@@ -328,7 +328,7 @@
       "priceIn": 0.66,
       "priceOut": 1,
       "ctx": 33,
-      "uptime": null,
+      "uptime": 100,
       "tps": null,
       "ttft": null
     },
@@ -408,8 +408,8 @@
       "ttft": null
     },
     "meta-llama/llama-3.3-70b-instruct": {
-      "priceIn": 0.2,
-      "priceOut": 0.52,
+      "priceIn": 0.1,
+      "priceOut": 0.32,
       "ctx": 131,
       "uptime": 100,
       "tps": null,
