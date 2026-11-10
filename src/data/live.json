@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-09T22:22:04.581Z",
+  "updatedAt": "2026-11-10T07:18:48.878Z",
   "speedMeasuredAt": "2026-08-06T15:38:10.552Z",
   "source": "openrouter.ai public API; speed/TTFT measured via streamed completions",
   "models": {
@@ -124,8 +124,8 @@
       "ttft": null
     },
     "deepseek/deepseek-v4-pro": {
-      "priceIn": 0.88,
-      "priceOut": 1.761,
+      "priceIn": 0.955,
+      "priceOut": 1.911,
       "ctx": 1049,
       "uptime": 100,
       "tps": 56,
@@ -328,7 +328,7 @@
       "priceIn": 0.66,
       "priceOut": 1,
       "ctx": 33,
-      "uptime": 100,
+      "uptime": null,
       "tps": null,
       "ttft": null
     },
@@ -408,8 +408,8 @@
       "ttft": null
     },
     "meta-llama/llama-3.3-70b-instruct": {
-      "priceIn": 0.59,
-      "priceOut": 0.79,
+      "priceIn": 0.71,
+      "priceOut": 0.71,
       "ctx": 131,
       "uptime": 100,
       "tps": null,
